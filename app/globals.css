@@ -1,0 +1,133 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #07060d;
+  --color-bg-elevated: #0f0e1a;
+  --color-panel: rgba(15, 14, 26, 0.85);
+  --color-panel-solid: #0f0e1a;
+  --color-border: rgba(255, 255, 255, 0.06);
+  --color-border-hover: rgba(255, 255, 255, 0.12);
+  --color-text-primary: #f1f5f9;
+  --color-text-secondary: #94a3b8;
+  --color-text-tertiary: #64748b;
+  --color-surface: rgba(255, 255, 255, 0.03);
+  --color-surface-hover: rgba(255, 255, 255, 0.06);
+  --color-accent: #b63679;
+  --color-accent-bright: #fcffa4;
+  --color-exposure-low: #2c115f;
+  --color-exposure-mid: #e8585a;
+  --color-exposure-high: #fcffa4;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background-color: var(--color-bg) !important;
+  color: var(--color-text-primary);
+  color-scheme: dark;
+  font-family: system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* MapLibre dark overrides */
+.maplibregl-ctrl-attrib {
+  font-size: 10px !important;
+  background: rgba(7, 6, 13, 0.7) !important;
+  color: #64748b !important;
+}
+.maplibregl-ctrl-attrib a {
+  color: #64748b !important;
+}
+.maplibregl-ctrl-group {
+  background: rgba(15, 14, 26, 0.9) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  backdrop-filter: blur(12px);
+}
+.maplibregl-ctrl-group button {
+  filter: invert(1) brightness(0.8);
+}
+.maplibregl-ctrl-bottom-right {
+  bottom: 100px !important;
+}
+.maplibregl-popup-content {
+  background: rgba(15, 14, 26, 0.95) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
+  backdrop-filter: blur(12px);
+  color: #f1f5f9 !important;
+  padding: 10px 12px !important;
+}
+.maplibregl-popup-tip {
+  border-top-color: rgba(15, 14, 26, 0.95) !important;
+}
+
+/* Recharts dark overrides */
+.recharts-default-tooltip {
+  background: rgba(15, 14, 26, 0.95) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
+  backdrop-filter: blur(12px);
+}
+.recharts-tooltip-label {
+  color: #f1f5f9 !important;
+}
+.recharts-tooltip-item {
+  color: #cbd5e1 !important;
+}
+.recharts-legend-item-text {
+  color: #94a3b8 !important;
+}
+.recharts-cartesian-axis-tick-value {
+  fill: #64748b !important;
+}
+
+/* Counter animation */
+@keyframes pulse-glow {
+  0%,
+  100% {
+    text-shadow: 0 0 20px rgba(252, 255, 164, 0.3);
+  }
+  50% {
+    text-shadow: 0 0 40px rgba(252, 255, 164, 0.6);
+  }
+}
+.counter-glow {
+  animation: pulse-glow 3s ease-in-out infinite;
+}
+
+/* Panel slide-in animation */
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}

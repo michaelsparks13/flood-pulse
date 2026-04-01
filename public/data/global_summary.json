@@ -1,0 +1,199 @@
+{
+  "byYear": [
+    {
+      "year": 2000,
+      "cumulativePersonMonths": 25819518,
+      "rawRecordCount": 498,
+      "countriesAffected": 36,
+      "hexesFlooded": 378
+    },
+    {
+      "year": 2001,
+      "cumulativePersonMonths": 49138451,
+      "rawRecordCount": 477,
+      "countriesAffected": 49,
+      "hexesFlooded": 559
+    },
+    {
+      "year": 2002,
+      "cumulativePersonMonths": 79042895,
+      "rawRecordCount": 1646,
+      "countriesAffected": 53,
+      "hexesFlooded": 811
+    },
+    {
+      "year": 2003,
+      "cumulativePersonMonths": 103542430,
+      "rawRecordCount": 653,
+      "countriesAffected": 49,
+      "hexesFlooded": 556
+    },
+    {
+      "year": 2004,
+      "cumulativePersonMonths": 253546976,
+      "rawRecordCount": 1750,
+      "countriesAffected": 57,
+      "hexesFlooded": 2359
+    },
+    {
+      "year": 2005,
+      "cumulativePersonMonths": 441262480,
+      "rawRecordCount": 2939,
+      "countriesAffected": 81,
+      "hexesFlooded": 4183
+    },
+    {
+      "year": 2006,
+      "cumulativePersonMonths": 670301680,
+      "rawRecordCount": 3397,
+      "countriesAffected": 94,
+      "hexesFlooded": 4551
+    },
+    {
+      "year": 2007,
+      "cumulativePersonMonths": 1207787613,
+      "rawRecordCount": 7498,
+      "countriesAffected": 121,
+      "hexesFlooded": 8802
+    },
+    {
+      "year": 2008,
+      "cumulativePersonMonths": 1745947912,
+      "rawRecordCount": 8919,
+      "countriesAffected": 113,
+      "hexesFlooded": 10113
+    },
+    {
+      "year": 2009,
+      "cumulativePersonMonths": 2369388742,
+      "rawRecordCount": 12804,
+      "countriesAffected": 123,
+      "hexesFlooded": 12426
+    },
+    {
+      "year": 2010,
+      "cumulativePersonMonths": 3490899769,
+      "rawRecordCount": 33717,
+      "countriesAffected": 139,
+      "hexesFlooded": 22425
+    },
+    {
+      "year": 2011,
+      "cumulativePersonMonths": 4429634477,
+      "rawRecordCount": 30311,
+      "countriesAffected": 136,
+      "hexesFlooded": 19542
+    },
+    {
+      "year": 2012,
+      "cumulativePersonMonths": 5764337207,
+      "rawRecordCount": 33911,
+      "countriesAffected": 145,
+      "hexesFlooded": 24040
+    },
+    {
+      "year": 2013,
+      "cumulativePersonMonths": 7676683194,
+      "rawRecordCount": 62284,
+      "countriesAffected": 150,
+      "hexesFlooded": 32393
+    },
+    {
+      "year": 2014,
+      "cumulativePersonMonths": 9498987443,
+      "rawRecordCount": 75978,
+      "countriesAffected": 150,
+      "hexesFlooded": 32591
+    },
+    {
+      "year": 2015,
+      "cumulativePersonMonths": 11608159299,
+      "rawRecordCount": 74391,
+      "countriesAffected": 154,
+      "hexesFlooded": 37922
+    },
+    {
+      "year": 2016,
+      "cumulativePersonMonths": 14490373781,
+      "rawRecordCount": 112583,
+      "countriesAffected": 156,
+      "hexesFlooded": 44367
+    },
+    {
+      "year": 2017,
+      "cumulativePersonMonths": 17611828920,
+      "rawRecordCount": 127318,
+      "countriesAffected": 162,
+      "hexesFlooded": 46936
+    },
+    {
+      "year": 2018,
+      "cumulativePersonMonths": 21304051244,
+      "rawRecordCount": 163277,
+      "countriesAffected": 164,
+      "hexesFlooded": 54488
+    },
+    {
+      "year": 2019,
+      "cumulativePersonMonths": 25314855071,
+      "rawRecordCount": 162860,
+      "countriesAffected": 162,
+      "hexesFlooded": 57662
+    },
+    {
+      "year": 2020,
+      "cumulativePersonMonths": 30028480816,
+      "rawRecordCount": 198201,
+      "countriesAffected": 164,
+      "hexesFlooded": 58660
+    },
+    {
+      "year": 2021,
+      "cumulativePersonMonths": 34831981533,
+      "rawRecordCount": 219768,
+      "countriesAffected": 162,
+      "hexesFlooded": 59574
+    },
+    {
+      "year": 2022,
+      "cumulativePersonMonths": 40167590731,
+      "rawRecordCount": 225068,
+      "countriesAffected": 159,
+      "hexesFlooded": 63908
+    },
+    {
+      "year": 2023,
+      "cumulativePersonMonths": 45668370907,
+      "rawRecordCount": 261813,
+      "countriesAffected": 164,
+      "hexesFlooded": 71316
+    },
+    {
+      "year": 2024,
+      "cumulativePersonMonths": 54116303381,
+      "rawRecordCount": 402012,
+      "countriesAffected": 167,
+      "hexesFlooded": 90650
+    },
+    {
+      "year": 2025,
+      "cumulativePersonMonths": 62337549001,
+      "rawRecordCount": 395506,
+      "countriesAffected": 163,
+      "hexesFlooded": 80781
+    },
+    {
+      "year": 2026,
+      "cumulativePersonMonths": 62613665908,
+      "rawRecordCount": 26723,
+      "countriesAffected": 109,
+      "hexesFlooded": 10361
+    }
+  ],
+  "totals": {
+    "personMonths": 62613665908,
+    "countries": 171,
+    "hexesEverFlooded": 171349,
+    "areaKm2": 43334823.2
+  }
+}
