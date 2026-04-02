@@ -26,8 +26,13 @@ export default function TimelineSlider({
   // Auto-advance when playing, stop at end
   useEffect(() => {
     if (playing) {
+      if (year >= MAX_YEAR) {
+        onYearChange(MIN_YEAR);
+        return;
+      }
       intervalRef.current = setInterval(() => {
-        if (year >= MAX_YEAR) {
+        if (year + 1 >= MAX_YEAR) {
+          onYearChange(MAX_YEAR);
           onPlayToggle();
           return;
         }
@@ -56,10 +61,10 @@ export default function TimelineSlider({
     <div className="w-full max-w-3xl mx-auto">
       {/* Sparkline showing raw record growth */}
       {summary && (
-        <div className="mb-2 px-1">
+        <div className="mb-1 px-1">
           <svg
             viewBox="0 0 100 100"
-            className="w-full h-8"
+            className="w-full h-6"
             preserveAspectRatio="none"
           >
             <polygon
@@ -73,23 +78,13 @@ export default function TimelineSlider({
               strokeWidth="2"
               vectorEffect="non-scaling-stroke"
             />
-            {/* Current year marker */}
-            <line
-              x1={((year - MIN_YEAR) / (MAX_YEAR - MIN_YEAR)) * 100}
-              y1="0"
-              x2={((year - MIN_YEAR) / (MAX_YEAR - MIN_YEAR)) * 100}
-              y2="100"
-              stroke="rgba(252, 255, 164, 0.8)"
-              strokeWidth="1.5"
-              vectorEffect="non-scaling-stroke"
-            />
           </svg>
         </div>
       )}
 
       {/* Current year — prominent display */}
-      <div className="text-center mb-2">
-        <span className="font-(--font-mono) text-2xl sm:text-3xl font-bold text-accent-bright tracking-tight">
+      <div className="text-center mb-1">
+        <span className="font-(--font-mono) text-xl sm:text-2xl font-bold text-accent-bright tracking-tight">
           {year}
         </span>
       </div>

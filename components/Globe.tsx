@@ -203,8 +203,10 @@ export default function Globe({ year }: GlobeProps) {
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !loaded) return;
-    map.setFilter("hex-fill", ["<=", ["get", "y0"], year]);
-    map.setFilter("hex-outline", ["<=", ["get", "y0"], year]);
+    const filter: maplibregl.FilterSpecification = ["<=", ["get", "y0"], year];
+    map.setFilter("hex-fill", filter);
+    map.setFilter("hex-outline", filter);
+    map.triggerRepaint();
   }, [year, loaded]);
 
   return (

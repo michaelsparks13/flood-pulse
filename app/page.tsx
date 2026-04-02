@@ -11,9 +11,10 @@ import type { GlobalSummary } from "@/lib/types";
 const Globe = dynamic(() => import("@/components/Globe"), { ssr: false });
 
 export default function Home() {
-  const [year, setYear] = useState(2000);
-  const [playing, setPlaying] = useState(true);
+  const [year, setYear] = useState(2026);
+  const [playing, setPlaying] = useState(false);
   const [summary, setSummary] = useState<GlobalSummary | null>(null);
+  const [methodologyOpen, setMethodologyOpen] = useState(false);
 
   // Load global summary data
   useEffect(() => {
@@ -49,12 +50,13 @@ export default function Home() {
 
       {/* Top-right: methodology button */}
       <div className="absolute top-5 right-5 z-10 flex items-center gap-2">
-        <MethodologyDrawer />
+        <MethodologyDrawer open={methodologyOpen} onOpenChange={setMethodologyOpen} />
       </div>
 
       {/* Bottom: unified timeline + legend panel */}
-      <div className="absolute bottom-5 left-5 right-5 sm:bottom-8 sm:left-8 sm:right-8 z-10">
-        <div className="bg-panel/80 backdrop-blur-xl rounded-2xl border border-border shadow-[0_4px_24px_rgba(0,0,0,0.3)] px-5 sm:px-6 py-4 sm:py-5">
+      {!methodologyOpen && (
+      <div className="absolute bottom-5 left-1/2 -translate-x-1/2 w-full max-w-3xl px-5 sm:bottom-8 z-10">
+        <div className="bg-panel/80 backdrop-blur-xl rounded-2xl border border-border shadow-[0_4px_24px_rgba(0,0,0,0.3)] px-5 sm:px-6 py-3 sm:py-4">
           <div className="flex items-end gap-6">
             <div className="flex-1 min-w-0">
               <TimelineSlider
@@ -86,6 +88,7 @@ export default function Home() {
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 }

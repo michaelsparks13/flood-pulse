@@ -1,9 +1,12 @@
 "use client";
 
-import { useState } from "react";
+interface MethodologyDrawerProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
 
-export default function MethodologyDrawer() {
-  const [open, setOpen] = useState(false);
+export default function MethodologyDrawer({ open, onOpenChange }: MethodologyDrawerProps) {
+  const setOpen = onOpenChange;
 
   return (
     <>
@@ -17,10 +20,10 @@ export default function MethodologyDrawer() {
         Methodology
       </button>
 
-      {/* Backdrop + drawer */}
+      {/* Backdrop + modal */}
       {open && (
         <div
-          className="fixed inset-0 z-50 flex justify-end"
+          className="fixed inset-0 z-50 flex items-center justify-center p-5 sm:p-8"
           onClick={(e) => {
             if (e.target === e.currentTarget) setOpen(false);
           }}
@@ -28,14 +31,15 @@ export default function MethodologyDrawer() {
           {/* Backdrop */}
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
 
-          {/* Drawer */}
+          {/* Modal */}
           <div
-            className="relative w-full sm:w-[460px] h-full bg-panel-solid
-                          border-l border-border overflow-y-auto
-                          animate-[slideIn_0.3s_ease-out]"
+            className="relative w-full max-w-xl max-h-[85vh] bg-panel-solid
+                          rounded-2xl border border-border overflow-y-auto
+                          shadow-[0_8px_48px_rgba(0,0,0,0.5)]
+                          animate-[fadeScaleIn_0.2s_ease-out]"
           >
             {/* Header */}
-            <div className="sticky top-0 bg-panel-solid/95 backdrop-blur-xl border-b border-border px-6 py-4 flex items-center justify-between z-10">
+            <div className="sticky top-0 bg-panel-solid/95 backdrop-blur-xl border-b border-border px-6 py-4 flex items-center justify-between z-10 rounded-t-2xl">
               <h2 className="text-text-primary font-semibold text-lg">
                 Methodology
               </h2>
