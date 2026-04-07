@@ -20,8 +20,18 @@ PROCESSED = DATA_ROOT / "processed"
 FINAL = DATA_ROOT / "final"
 
 GROUNDSOURCE_PARQUET = RAW / "groundsource_2026.parquet"
-GHSPOP_TIFF = RAW / "GHS_POP_E2020_GLOBE_R2023A_4326_30ss_V1_0.tif"
 NATURAL_EARTH_GEOJSON = RAW / "ne_110m_admin_0_countries.geojson"
+
+# GHS-POP R2023A epochs covering 2000-2026
+GHSPOP_EPOCHS: list[int] = [2000, 2005, 2010, 2015, 2020, 2025]
+
+GHSPOP_TIFFS: dict[int, Path] = {
+    epoch: RAW / f"GHS_POP_E{epoch}_GLOBE_R2023A_4326_30ss_V1_0.tif"
+    for epoch in GHSPOP_EPOCHS
+}
+
+# Backward compat: single-epoch fallback
+GHSPOP_TIFF = GHSPOP_TIFFS[2020]
 
 HEX_FLOOD_MONTHS = PROCESSED / "hex_flood_months.parquet"
 HEX_POPULATION = PROCESSED / "hex_population.parquet"
@@ -52,11 +62,14 @@ H3_RES5_AREA_KM2: float = 252.903858
 # Data sources
 # ---------------------------------------------------------------------------
 
-GHSPOP_URL = (
-    "https://jeodpp.jrc.ec.europa.eu/ftp/jrc-opendata/GHSL/"
-    "GHS_POP_GLOBE_R2023A/GHS_POP_E2020_GLOBE_R2023A_4326_30ss/V1-0/"
-    "GHS_POP_E2020_GLOBE_R2023A_4326_30ss_V1_0.zip"
-)
+GHSPOP_URLS: dict[int, str] = {
+    epoch: (
+        f"https://jeodpp.jrc.ec.europa.eu/ftp/jrc-opendata/GHSL/"
+        f"GHS_POP_GLOBE_R2023A/GHS_POP_E{epoch}_GLOBE_R2023A_4326_30ss/V1-0/"
+        f"GHS_POP_E{epoch}_GLOBE_R2023A_4326_30ss_V1_0.zip"
+    )
+    for epoch in GHSPOP_EPOCHS
+}
 
 NATURAL_EARTH_URL = (
     "https://naciscdn.org/naturalearth/110m/cultural/"

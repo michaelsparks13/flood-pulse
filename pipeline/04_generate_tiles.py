@@ -35,11 +35,20 @@ logging.basicConfig(
 log = logging.getLogger(__name__)
 
 
-def hex_to_geojson_polygon(h3_index: str) -> dict:
-    """Convert H3 index to GeoJSON polygon geometry."""
+def hex_to_geojson_polygon(h3_index: str) -> dict | None:
+    """Convert H3 index to GeoJSON polygon geometry.
+    Returns None for hexes that straddle the antimeridian (would render
+    as a strip spanning the entire map).
+    """
     boundary = h3.cell_to_boundary(h3_index)
     # h3 returns (lat, lng) tuples; GeoJSON needs [lng, lat]
     coords = [[lng, lat] for lat, lng in boundary]
+
+    # Detect antimeridian-crossing hex: longitude span > 180°
+    lngs = [c[0] for c in coords]
+    if max(lngs) - min(lngs) > 180:
+        return None
+
     coords.append(coords[0])  # Close the ring
     return {"type": "Polygon", "coordinates": [coords]}
 
@@ -58,14 +67,19 @@ def main() -> None:
     log.info(f"Building GeoJSON for {len(df):,} hexes ...")
 
     features = []
+    skipped = 0
     for _, row in df.iterrows():
+        geom = hex_to_geojson_polygon(row["h3_index"])
+        if geom is None:
+            skipped += 1
+            continue
         feature = {
             "type": "Feature",
-            "geometry": hex_to_geojson_polygon(row["h3_index"]),
+            "geometry": geom,
             "properties": {
                 "h": row["h3_index"],
                 "m": int(row["total_months_flooded"]),
-                "pm": round(float(row["cumulative_person_months"])),
+                "yf": int(row["total_years_flooded"]),
                 "p": round(float(row["population"])),
                 "y0": int(row["first_flood_year"]),
                 "y1": int(row["last_flood_year"]),
@@ -80,7 +94,7 @@ def main() -> None:
         json.dump(geojson, f, separators=(",", ":"))
 
     size_mb = HEX_AGGREGATES_GEOJSON.stat().st_size / 1_048_576
-    log.info(f"Wrote {HEX_AGGREGATES_GEOJSON} ({size_mb:.1f} MB, {len(features):,} features)")
+    log.info(f"Wrote {HEX_AGGREGATES_GEOJSON} ({size_mb:.1f} MB, {len(features):,} features, {skipped} antimeridian hexes skipped)")
 
     # Try to generate PMTiles
     tippecanoe = shutil.which("tippecanoe")

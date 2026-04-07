@@ -1,22 +1,24 @@
 """
-Step 2: Population Join
+Step 2: Population Join (multi-epoch)
 
-For each unique H3 hex in the flood index, estimate population.
+For each unique H3 hex in the flood index, estimate population at each year
+using GHS-POP R2023A epoch rasters (2000, 2005, 2010, 2015, 2020, 2025).
+Population between epochs is linearly interpolated.
 
 Two modes:
-  1. RASTER mode (preferred): Uses GHS-POP 2020 1km GeoTIFF for precise
-     per-hex population via zonal statistics.
+  1. RASTER mode (preferred): Uses one or more GHS-POP 1km GeoTIFFs.
+     If multiple epochs are present, interpolates per year.
+     If only one epoch is present, uses it for all years.
   2. COUNTRY mode (fallback): Uses Natural Earth POP_EST per country,
-     distributed by area across hexes. Accurate enough at H3 res-5 (~252 km²)
-     for a global overview, but less precise than raster mode.
+     distributed by area across hexes (static, no temporal variation).
 
 Output: hex_population.parquet
-  Columns: [h3_index, population]
+  Columns: [h3_index, year, population]
+  One row per hex per year that appears in the flood data.
 """
 
 from __future__ import annotations
 
-import json
 import logging
 import sys
 import time
@@ -29,7 +31,10 @@ import pandas as pd
 from shapely.geometry import Point
 
 from config import (
+    GHSPOP_EPOCHS,
     GHSPOP_TIFF,
+    GHSPOP_TIFFS,
+    GHSPOP_URLS,
     H3_RES5_AREA_KM2,
     HEX_FLOOD_MONTHS,
     HEX_POPULATION,
@@ -47,12 +52,10 @@ BATCH_SIZE = 5_000
 
 
 # ---------------------------------------------------------------------------
-# Mode 1: Raster-based (GHS-POP)
+# Mode 1: Raster-based (GHS-POP) — single epoch helper
 # ---------------------------------------------------------------------------
 
-def hex_population_from_raster(
-    h3_indices: list[str], raster_path: str
-) -> dict[str, float]:
+def _pop_from_raster(h3_indices: list[str], raster_path: str) -> dict[str, float]:
     """Compute population sum for each H3 hex using windowed raster reads."""
     import rasterio
     from rasterio.windows import from_bounds
@@ -100,16 +103,89 @@ def hex_population_from_raster(
     return results
 
 
+def hex_population_multiyear_raster(
+    h3_indices: list[str],
+    years: list[int],
+) -> pd.DataFrame:
+    """
+    Compute per-hex population at each year using available GHS-POP epochs.
+    Linearly interpolates between the two nearest epochs.
+    """
+    # Find available epoch rasters on disk
+    available: dict[int, str] = {}
+    for epoch, path in sorted(GHSPOP_TIFFS.items()):
+        if path.exists():
+            available[epoch] = str(path)
+
+    if not available:
+        raise FileNotFoundError("No GHS-POP epoch rasters found")
+
+    epochs_present = sorted(available.keys())
+    log.info(f"Available GHS-POP epochs: {epochs_present}")
+
+    if len(epochs_present) < len(GHSPOP_EPOCHS):
+        missing = set(GHSPOP_EPOCHS) - set(epochs_present)
+        log.warning(f"Missing epochs: {sorted(missing)}")
+        for epoch in sorted(missing):
+            log.info(f"  Download from: {GHSPOP_URLS[epoch]}")
+
+    # Read population at each available epoch
+    epoch_pops: dict[int, dict[str, float]] = {}
+    for epoch in epochs_present:
+        log.info(f"Reading GHS-POP epoch {epoch} ...")
+        epoch_pops[epoch] = _pop_from_raster(h3_indices, available[epoch])
+
+    # Interpolate population for each (hex, year)
+    rows: list[dict] = []
+    for yr in sorted(set(years)):
+        if yr <= epochs_present[0]:
+            # Before or at first epoch — use first epoch
+            src_epoch = epochs_present[0]
+            for h3_idx in h3_indices:
+                rows.append({
+                    "h3_index": h3_idx,
+                    "year": yr,
+                    "population": epoch_pops[src_epoch].get(h3_idx, 0.0),
+                })
+        elif yr >= epochs_present[-1]:
+            # At or after last epoch — use last epoch
+            src_epoch = epochs_present[-1]
+            for h3_idx in h3_indices:
+                rows.append({
+                    "h3_index": h3_idx,
+                    "year": yr,
+                    "population": epoch_pops[src_epoch].get(h3_idx, 0.0),
+                })
+        else:
+            # Interpolate between two bracketing epochs
+            lo = max(e for e in epochs_present if e <= yr)
+            hi = min(e for e in epochs_present if e > yr)
+            frac = (yr - lo) / (hi - lo)
+            for h3_idx in h3_indices:
+                p_lo = epoch_pops[lo].get(h3_idx, 0.0)
+                p_hi = epoch_pops[hi].get(h3_idx, 0.0)
+                pop = p_lo + (p_hi - p_lo) * frac
+                rows.append({
+                    "h3_index": h3_idx,
+                    "year": yr,
+                    "population": max(0.0, pop),
+                })
+
+    return pd.DataFrame(rows)
+
+
 # ---------------------------------------------------------------------------
-# Mode 2: Country-based estimation
+# Mode 2: Country-based estimation (static — no temporal variation)
 # ---------------------------------------------------------------------------
 
-def hex_population_from_countries(
-    h3_indices: list[str], ne_path: str
-) -> dict[str, float]:
+def hex_population_multiyear_countries(
+    h3_indices: list[str],
+    years: list[int],
+    ne_path: str,
+) -> pd.DataFrame:
     """
-    Estimate population by assigning each hex to a country, then distributing
-    the country's total population proportionally among its hexes.
+    Estimate population by country density. Same value for every year
+    since Natural Earth provides only a single population estimate.
     """
     log.info("Loading Natural Earth boundaries ...")
     world = gpd.read_file(ne_path)
@@ -117,7 +193,6 @@ def hex_population_from_countries(
     world.loc[world["ISO_A3"] == "-99", "ISO_A3"] = "UNK"
     world["area_km2"] = world.to_crs("EPSG:6933").geometry.area / 1e6
 
-    # Build centroids for all hexes
     log.info(f"Assigning {len(h3_indices):,} hexes to countries ...")
     centroids = []
     for idx in h3_indices:
@@ -129,17 +204,13 @@ def hex_population_from_countries(
     )
     joined = gpd.sjoin(pts, world.reset_index(), how="left", predicate="within")
 
-    # Count hexes per country to distribute population
-    country_hex_counts: dict[str, int] = defaultdict(int)
     hex_country: dict[str, str] = {}
     for _, row in joined.iterrows():
         code = row.get("ISO_A3", "UNK")
         if pd.isna(code):
             code = "UNK"
         hex_country[row["h3_index"]] = code
-        country_hex_counts[code] += 1
 
-    # Country population lookup
     country_pop: dict[str, float] = {}
     country_area: dict[str, float] = {}
     for _, row in world.iterrows():
@@ -150,25 +221,26 @@ def hex_population_from_countries(
             country_pop[code] = float(pop)
             country_area[code] = float(area) if pd.notna(area) and area > 0 else 1.0
 
-    # Population density per km² for each country
-    country_density: dict[str, float] = {}
-    for code in country_pop:
-        country_density[code] = country_pop[code] / country_area.get(code, 1.0)
+    country_density = {
+        code: country_pop[code] / country_area.get(code, 1.0)
+        for code in country_pop
+    }
 
-    # Assign population to each hex
-    results: dict[str, float] = {}
-    for idx in h3_indices:
-        code = hex_country.get(idx, "UNK")
-        density = country_density.get(code, 0.0)
-        # Population in hex = density * hex area
-        results[idx] = density * H3_RES5_AREA_KM2
+    # Static population — replicate across all years
+    rows: list[dict] = []
+    for yr in sorted(set(years)):
+        for h3_idx in h3_indices:
+            code = hex_country.get(h3_idx, "UNK")
+            density = country_density.get(code, 0.0)
+            rows.append({
+                "h3_index": h3_idx,
+                "year": yr,
+                "population": density * H3_RES5_AREA_KM2,
+            })
 
     assigned = sum(1 for v in hex_country.values() if v != "UNK")
     log.info(f"  Assigned {assigned:,} / {len(h3_indices):,} hexes to countries")
-
-    total_pop = sum(results.values())
-    log.info(f"  Estimated total population in flooded hexes: {total_pop:,.0f}")
-    return results
+    return pd.DataFrame(rows)
 
 
 # ---------------------------------------------------------------------------
@@ -185,36 +257,38 @@ def main() -> None:
 
     t0 = time.time()
 
-    # Get unique H3 indices
-    df = pd.read_parquet(HEX_FLOOD_MONTHS, columns=["h3_index"])
-    unique_hexes = df["h3_index"].unique().tolist()
-    log.info(f"Unique H3 hexes to process: {len(unique_hexes):,}")
+    # Load flood data to get unique hexes and years
+    flood_df = pd.read_parquet(HEX_FLOOD_MONTHS, columns=["h3_index", "year_month"])
+    unique_hexes = flood_df["h3_index"].unique().tolist()
+    unique_years = sorted(flood_df["year_month"].str[:4].astype(int).unique().tolist())
+    log.info(f"Unique H3 hexes: {len(unique_hexes):,}")
+    log.info(f"Year range: {unique_years[0]} - {unique_years[-1]}")
 
-    # Choose mode
-    if GHSPOP_TIFF.exists():
-        log.info("Using RASTER mode (GHS-POP 2020)")
-        pop_map = hex_population_from_raster(unique_hexes, str(GHSPOP_TIFF))
+    # Choose mode based on available data
+    any_raster = any(p.exists() for p in GHSPOP_TIFFS.values())
+
+    if any_raster:
+        available = [e for e in GHSPOP_EPOCHS if GHSPOP_TIFFS[e].exists()]
+        log.info(f"Using RASTER mode (GHS-POP epochs: {available})")
+        out_df = hex_population_multiyear_raster(unique_hexes, unique_years)
     elif NATURAL_EARTH_GEOJSON.exists():
         log.info("Using COUNTRY mode (Natural Earth POP_EST fallback)")
-        log.info(
-            "For higher precision, place GHS-POP 2020 1km GeoTIFF at:\n"
-            f"  {GHSPOP_TIFF}"
-        )
-        pop_map = hex_population_from_countries(
-            unique_hexes, str(NATURAL_EARTH_GEOJSON)
+        log.info("For year-specific population, download GHS-POP epoch rasters:")
+        for epoch, url in sorted(GHSPOP_URLS.items()):
+            log.info(f"  {epoch}: {url}")
+        out_df = hex_population_multiyear_countries(
+            unique_hexes, unique_years, str(NATURAL_EARTH_GEOJSON)
         )
     else:
         log.error("No population data source found.")
-        log.info(f"Need either:\n  {GHSPOP_TIFF}\n  {NATURAL_EARTH_GEOJSON}")
         sys.exit(1)
 
-    # Write output
-    out_df = pd.DataFrame(
-        [{"h3_index": k, "population": v} for k, v in pop_map.items()]
-    )
     out_df.to_parquet(HEX_POPULATION, index=False)
     log.info(f"Wrote {HEX_POPULATION} ({len(out_df):,} rows)")
-    log.info(f"Total population across all flooded hexes: {out_df['population'].sum():,.0f}")
+    log.info(
+        f"Population range per hex-year: "
+        f"{out_df['population'].min():,.0f} - {out_df['population'].max():,.0f}"
+    )
     log.info(f"Done in {time.time() - t0:.1f}s")
 
 
