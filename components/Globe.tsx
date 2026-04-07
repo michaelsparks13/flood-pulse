@@ -7,9 +7,11 @@ import "maplibre-gl/dist/maplibre-gl.css";
 
 interface GlobeProps {
   year: number;
+  onBasemapReady?: () => void;
+  onDataReady?: () => void;
 }
 
-export default function Globe({ year }: GlobeProps) {
+export default function Globe({ year, onBasemapReady, onDataReady }: GlobeProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -136,6 +138,12 @@ export default function Globe({ year }: GlobeProps) {
         });
 
         setLoaded(true);
+        onBasemapReady?.();
+
+        // Fire once hex tiles finish rendering
+        map.once("idle", () => {
+          onDataReady?.();
+        });
 
         // Slow auto-rotation
         const rotate = () => {

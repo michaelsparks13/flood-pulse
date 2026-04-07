@@ -15,6 +15,8 @@ export default function Home() {
   const [playing, setPlaying] = useState(false);
   const [summary, setSummary] = useState<GlobalSummary | null>(null);
   const [methodologyOpen, setMethodologyOpen] = useState(false);
+  const [basemapReady, setBasemapReady] = useState(false);
+  const [dataReady, setDataReady] = useState(false);
 
   // Load global summary data
   useEffect(() => {
@@ -22,6 +24,14 @@ export default function Home() {
       .then((r) => r.json())
       .then((d) => setSummary(d))
       .catch(() => {});
+  }, []);
+
+  const handleBasemapReady = useCallback(() => {
+    setBasemapReady(true);
+  }, []);
+
+  const handleDataReady = useCallback(() => {
+    setDataReady(true);
   }, []);
 
   const handleYearChange = useCallback((y: number) => {
@@ -35,7 +45,38 @@ export default function Home() {
   return (
     <div className="relative w-screen h-screen overflow-hidden bg-bg">
       {/* Globe fills the viewport */}
-      <Globe year={year} />
+      <Globe year={year} onBasemapReady={handleBasemapReady} onDataReady={handleDataReady} />
+
+      {/* Loading indicator — fades in after globe renders, fades out when hex data arrives */}
+      <div
+        className={`absolute inset-0 z-50 flex items-center justify-center pointer-events-none transition-opacity duration-500 ${
+          basemapReady && !dataReady ? "opacity-100" : "opacity-0"
+        }`}
+      >
+        <div className="flex flex-col items-center gap-3">
+          <svg
+            className="animate-spin h-6 w-6 text-text-tertiary"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <circle
+              className="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="2"
+            />
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+            />
+          </svg>
+          <span className="text-text-tertiary text-xs tracking-wide">Loading map data</span>
+        </div>
+      </div>
 
       {/* Top-left: counter + title */}
       <div className="absolute top-5 left-5 sm:top-8 sm:left-8 z-10 max-w-sm bg-panel/80 backdrop-blur-xl rounded-2xl border border-border shadow-[0_4px_24px_rgba(0,0,0,0.3)] p-5 sm:p-6">
