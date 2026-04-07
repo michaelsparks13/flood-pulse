@@ -1,6 +1,10 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import Link from "next/link";
 import MetricExplainer from "./MetricExplainer";
+import ComparisonChart from "./ComparisonChart";
+import type { ComparisonData } from "@/lib/types";
 
 interface MethodologyDrawerProps {
   open: boolean;
@@ -9,6 +13,16 @@ interface MethodologyDrawerProps {
 
 export default function MethodologyDrawer({ open, onOpenChange }: MethodologyDrawerProps) {
   const setOpen = onOpenChange;
+  const [comparison, setComparison] = useState<ComparisonData | null>(null);
+
+  useEffect(() => {
+    if (open && !comparison) {
+      fetch("/data/comparison.json")
+        .then((r) => r.json())
+        .then(setComparison)
+        .catch(() => {});
+    }
+  }, [open, comparison]);
 
   return (
     <>
@@ -197,6 +211,47 @@ export default function MethodologyDrawer({ open, onOpenChange }: MethodologyDra
 
               <section>
                 <h3 className="text-text-primary font-medium mb-2">
+                  Frequency Trend &amp; Return Period
+                </h3>
+                <p>
+                  The <strong className="text-text-primary">frequency trend</strong>{" "}
+                  answers: &ldquo;Are floods becoming more frequent here?&rdquo;
+                  For each hex, we create a binary time series of yearly flood
+                  occurrence (1&nbsp;=&nbsp;flooded, 0&nbsp;=&nbsp;not) across the
+                  full 2000&ndash;2026 observation period, then fit an OLS linear
+                  slope. Positive slope indicates increasing frequency. The
+                  diverging blue&ndash;white&ndash;red color scale highlights
+                  hexes where flooding is decreasing, stable, or increasing.
+                </p>
+                <p className="mt-2">
+                  The <strong className="text-text-primary">return period</strong>{" "}
+                  (shown on hover for hexes with 10+ flood months) estimates how
+                  often a location floods: the span between first and last flood
+                  year divided by the number of inter-event intervals. This is
+                  the empirical return period per{" "}
+                  <a
+                    href="https://doi.org/10.5194/hess-17-1871-2013"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-accent-bright underline underline-offset-2"
+                  >
+                    Winsemius&nbsp;et&nbsp;al.&nbsp;(2013)
+                  </a>
+                  .
+                </p>
+                <p className="mt-2 px-3 py-2 rounded-lg bg-surface text-text-tertiary text-xs leading-relaxed">
+                  <strong className="text-text-secondary">Temporal bias caveat:</strong>{" "}
+                  Groundsource has significant temporal bias &mdash; 64% of all
+                  records are from 2020&ndash;2025, reflecting the growth of online
+                  news coverage rather than actual flood frequency. An &ldquo;increasing&rdquo;
+                  trend at a location may partly reflect improved detection. The
+                  frequency chart and trend layer should be interpreted alongside
+                  this limitation.
+                </p>
+              </section>
+
+              <section>
+                <h3 className="text-text-primary font-medium mb-2">
                   Known Limitations
                 </h3>
                 <ul className="list-disc list-inside space-y-1.5 text-text-tertiary">
@@ -230,6 +285,56 @@ export default function MethodologyDrawer({ open, onOpenChange }: MethodologyDra
 
               <section>
                 <h3 className="text-text-primary font-medium mb-2">
+                  Comparison with Existing Databases
+                </h3>
+                <p>
+                  How do FloodPulse estimates compare with established flood
+                  databases? The chart below plots annual population exposed
+                  from FloodPulse alongside the{" "}
+                  <a
+                    href="https://doi.org/10.1038/s41586-021-03695-w"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-accent-bright underline underline-offset-2"
+                  >
+                    Global Flood Database
+                  </a>{" "}
+                  (913 satellite-observed events, 2000&ndash;2018) and{" "}
+                  <a
+                    href="https://www.emdat.be/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-accent-bright underline underline-offset-2"
+                  >
+                    EM-DAT
+                  </a>{" "}
+                  (curated disaster reports).
+                </p>
+                <div className="mt-3">
+                  <ComparisonChart data={comparison} compact />
+                </div>
+                <p className="mt-2 px-3 py-2 rounded-lg bg-surface text-text-tertiary text-xs leading-relaxed">
+                  <strong className="text-text-secondary">Why the gap?</strong>{" "}
+                  GFD captures only large, satellite-visible floods (913 events).
+                  EM-DAT requires severity thresholds (10+ deaths). FloodPulse
+                  captures 2.6M events from news, including small and localized
+                  floods invisible to satellites. The shaded early years
+                  (2000&ndash;2006) have sparse Groundsource coverage and are
+                  unreliable for comparison.
+                </p>
+                <div className="mt-2">
+                  <Link
+                    href="/compare"
+                    className="text-accent-bright text-xs underline underline-offset-2
+                               hover:text-accent-bright/80 transition-colors"
+                  >
+                    View detailed comparison &rarr;
+                  </Link>
+                </div>
+              </section>
+
+              <section>
+                <h3 className="text-text-primary font-medium mb-2">
                   References
                 </h3>
                 <ul className="space-y-1.5 text-text-tertiary text-xs">
@@ -247,6 +352,16 @@ export default function MethodologyDrawer({ open, onOpenChange }: MethodologyDra
                     Winsemius, H.C. et al. (2013). A framework for global river
                     flood risk assessments.{" "}
                     <em className="text-text-secondary">HESS</em> 17, 1871-1892.
+                  </li>
+                  <li>
+                    Rentschler, J. et al. (2022). Flood exposure and poverty in
+                    188 countries.{" "}
+                    <em className="text-text-secondary">Nat Commun</em> 13, 3527.
+                  </li>
+                  <li>
+                    Hu, P. et al. (2024). Global, regional and national trends
+                    and impacts of natural floods, 1990&ndash;2022.{" "}
+                    <em className="text-text-secondary">Sci Rep</em> 14, 11705.
                   </li>
                 </ul>
               </section>

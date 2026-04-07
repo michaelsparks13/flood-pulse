@@ -1,12 +1,55 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import maplibregl from "maplibre-gl";
 import { Protocol } from "pmtiles";
 import "maplibre-gl/dist/maplibre-gl.css";
+import type { MapMode } from "@/lib/types";
+
+/** Population exposure: magma-inspired sequential palette */
+const EXPOSURE_PAINT: maplibregl.ExpressionSpecification = [
+  "interpolate",
+  ["linear"],
+  ["get", "p"],
+  0, "#2c115f",
+  1000, "#711f81",
+  10000, "#b63679",
+  50000, "#e85a5a",
+  200000, "#f8945e",
+  1000000, "#fdd162",
+  5000000, "#fcffa4",
+  20000000, "#ffffff",
+];
+
+/** Frequency trend: diverging blue -> white -> red (RdBu) */
+const FREQUENCY_PAINT: maplibregl.ExpressionSpecification = [
+  "interpolate",
+  ["linear"],
+  ["get", "ft"],
+  -50, "#2166ac",
+  -25, "#67a9cf",
+  0, "#f0f0f0",
+  25, "#ef8a62",
+  50, "#b2182b",
+];
+
+function formatPopulation(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(0)}K`;
+  return n.toLocaleString();
+}
+
+function trendLabel(ft: number): string {
+  if (ft > 15) return "Strongly increasing";
+  if (ft > 5) return "Increasing";
+  if (ft > -5) return "Stable";
+  if (ft > -15) return "Decreasing";
+  return "Strongly decreasing";
+}
 
 interface GlobeProps {
   year: number;
+  mapMode: MapMode;
   showBoundaries?: boolean;
   showLabels?: boolean;
   satellite?: boolean;
@@ -17,6 +60,7 @@ interface GlobeProps {
 
 export default function Globe({
   year,
+  mapMode,
   showBoundaries = false,
   showLabels = false,
   satellite = false,
@@ -26,8 +70,55 @@ export default function Globe({
 }: GlobeProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
+  const popupRef = useRef<maplibregl.Popup | null>(null);
   const [loaded, setLoaded] = useState(false);
   const rotationRef = useRef<number | null>(null);
+
+  // Hover popup handler
+  const handleHover = useCallback(
+    (e: maplibregl.MapMouseEvent & { features?: maplibregl.MapGeoJSONFeature[] }) => {
+      const map = mapRef.current;
+      if (!map || !e.features?.[0]) return;
+
+      const props = e.features[0].properties;
+      if (!props) return;
+
+      map.setFilter("hex-hover", ["==", ["get", "h"], props.h ?? ""]);
+
+      const pop = Number(props.p ?? 0);
+      const yf = Number(props.yf ?? 0);
+      const m = Number(props.m ?? 0);
+      const ft = Number(props.ft ?? 0);
+      const rp = Number(props.rp ?? 0);
+      const y0 = Number(props.y0 ?? 0);
+      const y1 = Number(props.y1 ?? 0);
+
+      let html = `<div style="font-family: system-ui, sans-serif; font-size: 12px; line-height: 1.6;">`;
+      html += `<div style="font-weight: 600; margin-bottom: 4px; color: #f1f5f9;">${formatPopulation(pop)} people</div>`;
+      html += `<div style="color: #94a3b8;">Flooded <strong style="color:#f1f5f9">${yf}</strong> of ${y1 - y0 + 1} years (${m} months total)</div>`;
+
+      const trendColor = ft > 5 ? "#ef8a62" : ft < -5 ? "#67a9cf" : "#94a3b8";
+      html += `<div style="color: ${trendColor}; margin-top: 4px;">Trend: ${trendLabel(ft)}</div>`;
+
+      if (rp > 0) {
+        html += `<div style="color: #94a3b8; margin-top: 2px;">Floods roughly every <strong style="color:#f1f5f9">${rp < 2 ? rp.toFixed(1) : Math.round(rp)}</strong> years</div>`;
+      }
+
+      html += `</div>`;
+
+      if (!popupRef.current) {
+        popupRef.current = new maplibregl.Popup({
+          closeButton: false,
+          closeOnClick: false,
+          maxWidth: "260px",
+          offset: 12,
+        });
+      }
+
+      popupRef.current.setLngLat(e.lngLat).setHTML(html).addTo(map);
+    },
+    [],
+  );
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -227,18 +318,11 @@ export default function Globe({
         rotationRef.current = requestAnimationFrame(rotate);
       });
 
-      // Hover
-      map.on("mousemove", "hex-fill", (e) => {
-        if (e.features?.[0]) {
-          map.setFilter("hex-hover", [
-            "==",
-            ["get", "h"],
-            e.features[0].properties?.h ?? "",
-          ]);
-        }
-      });
+      // Hover with tooltip
+      map.on("mousemove", "hex-fill", handleHover);
       map.on("mouseleave", "hex-fill", () => {
         map.setFilter("hex-hover", ["==", ["get", "h"], ""]);
+        popupRef.current?.remove();
       });
 
       // Stop rotation on interaction
@@ -261,6 +345,7 @@ export default function Globe({
         cancelAnimationFrame(rotationRef.current);
         rotationRef.current = null;
       }
+      popupRef.current?.remove();
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;
@@ -321,6 +406,15 @@ export default function Globe({
     if (!map || !loaded) return;
     map.setPaintProperty("hex-fill", "fill-opacity", hexOpacity);
   }, [hexOpacity, loaded]);
+
+  // Update color paint when map mode changes
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !loaded) return;
+    const paint = mapMode === "frequency" ? FREQUENCY_PAINT : EXPOSURE_PAINT;
+    map.setPaintProperty("hex-fill", "fill-color", paint as any);
+    map.triggerRepaint();
+  }, [mapMode, loaded]);
 
   return (
     <div

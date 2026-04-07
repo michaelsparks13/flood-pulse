@@ -3,10 +3,11 @@
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useState } from "react";
 import ExposureCounter from "@/components/ExposureCounter";
+import FrequencyChart from "@/components/FrequencyChart";
 import TimelineSlider from "@/components/TimelineSlider";
 import MethodologyDrawer from "@/components/MethodologyDrawer";
 import LayersPanel from "@/components/LayersPanel";
-import type { GlobalSummary } from "@/lib/types";
+import type { GlobalSummary, MapMode } from "@/lib/types";
 
 // Load Globe client-side only (MapLibre needs DOM)
 const Globe = dynamic(() => import("@/components/Globe"), { ssr: false });
@@ -22,6 +23,7 @@ export default function Home() {
   const [showLabels, setShowLabels] = useState(false);
   const [satellite, setSatellite] = useState(false);
   const [hexOpacity, setHexOpacity] = useState(0.9);
+  const [mapMode, setMapMode] = useState<MapMode>("exposure");
 
   // Load global summary data
   useEffect(() => {
@@ -52,6 +54,7 @@ export default function Home() {
       {/* Globe fills the viewport */}
       <Globe
         year={year}
+        mapMode={mapMode}
         showBoundaries={showBoundaries}
         showLabels={showLabels}
         satellite={satellite}
@@ -100,6 +103,7 @@ export default function Home() {
           Global flood exposure from 2.6M news-derived events
         </p>
         <ExposureCounter summary={summary} year={year} />
+        <FrequencyChart summary={summary} />
       </div>
 
       {/* Top-right: methodology + layers */}
@@ -132,22 +136,63 @@ export default function Home() {
               />
             </div>
 
-            {/* Legend — hidden on mobile */}
-            <div className="hidden sm:flex flex-col items-end shrink-0 pb-1">
-              <div className="text-[10px] text-text-secondary mb-1.5 whitespace-nowrap">
-                Flood exposure
+            {/* Mode toggle + Legend — hidden on mobile */}
+            <div className="hidden sm:flex flex-col items-end shrink-0 pb-1 gap-2">
+              {/* Segmented toggle */}
+              <div className="flex rounded-lg border border-border overflow-hidden text-[10px]">
+                <button
+                  onClick={() => setMapMode("exposure")}
+                  className={`px-2.5 py-1 transition-colors cursor-pointer ${
+                    mapMode === "exposure"
+                      ? "bg-white/10 text-text-primary"
+                      : "text-text-tertiary hover:text-text-secondary"
+                  }`}
+                >
+                  Exposure
+                </button>
+                <button
+                  onClick={() => setMapMode("frequency")}
+                  className={`px-2.5 py-1 transition-colors cursor-pointer border-l border-border ${
+                    mapMode === "frequency"
+                      ? "bg-white/10 text-text-primary"
+                      : "text-text-tertiary hover:text-text-secondary"
+                  }`}
+                >
+                  Frequency
+                </button>
               </div>
-              <div
-                className="w-28 h-2 rounded-full"
-                style={{
-                  background:
-                    "linear-gradient(90deg, #0d0829, #2c115f, #711f81, #b63679, #e85a5a, #f8945e, #fdd162, #fcffa4)",
-                }}
-              />
-              <div className="flex justify-between w-28 text-[9px] text-text-tertiary mt-0.5">
-                <span>Low</span>
-                <span>High</span>
-              </div>
+
+              {/* Dynamic legend */}
+              {mapMode === "exposure" ? (
+                <>
+                  <div
+                    className="w-28 h-2 rounded-full"
+                    style={{
+                      background:
+                        "linear-gradient(90deg, #0d0829, #2c115f, #711f81, #b63679, #e85a5a, #f8945e, #fdd162, #fcffa4)",
+                    }}
+                  />
+                  <div className="flex justify-between w-28 text-[9px] text-text-tertiary">
+                    <span>Low</span>
+                    <span>High</span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div
+                    className="w-28 h-2 rounded-full"
+                    style={{
+                      background:
+                        "linear-gradient(90deg, #2166ac, #67a9cf, #f0f0f0, #ef8a62, #b2182b)",
+                    }}
+                  />
+                  <div className="flex justify-between w-28 text-[9px] text-text-tertiary">
+                    <span>Less</span>
+                    <span className="text-[8px]">Stable</span>
+                    <span>More</span>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>

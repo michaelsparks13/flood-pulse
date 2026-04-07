@@ -1,3 +1,6 @@
+/** Map color mode */
+export type MapMode = "exposure" | "frequency";
+
 /** Hex-level aggregate for the map layer */
 export interface HexAggregate {
   h3Index: string;
@@ -48,4 +51,56 @@ export interface GlobalSummary {
 export interface TimelineState {
   year: number;
   playing: boolean;
+}
+
+/** External dataset comparison data */
+export interface ComparisonData {
+  generated: string;
+  floodpulse_data_through: string;
+  annual_pe: {
+    years: number[];
+    floodpulse: number[];
+    gfd: (number | null)[];
+    emdat: (number | null)[];
+  };
+  annual_events: {
+    years: number[];
+    floodpulse_records: number[];
+    gfd: (number | null)[];
+    dfo: (number | null)[];
+    gdacs: (number | null)[];
+  };
+  cumulative_pe: {
+    years: number[];
+    floodpulse: number[];
+    gfd: (number | null)[];
+    emdat: (number | null)[];
+  };
+  calibration_gfd: {
+    years: number[];
+    pe_ratio: (number | null)[];
+    mean_ratio: number | null;
+    median_ratio: number | null;
+    notes: string;
+  };
+  calibration_emdat: {
+    years: number[];
+    pe_ratio: (number | null)[];
+    mean_ratio: number | null;
+    notes: string;
+  };
+  benchmarks: {
+    label: string;
+    type: string;
+    year_range?: [number, number];
+    year?: number;
+    value: number;
+    value_low?: number;
+    description: string;
+    doi?: string;
+    url?: string;
+  }[];
+  low_confidence_years: number[];
+  methodology_notes: Record<string, string>;
+  sources: Record<string, { citation: string; doi?: string; url?: string }>;
 }
