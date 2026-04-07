@@ -98,6 +98,7 @@ def main() -> None:
     log.info(f"Total rows: {total_rows:,} across {pf.metadata.num_row_groups} row groups")
 
     hex_month_counts: Counter = Counter()
+    hex_month_area: dict[tuple[str, str], float] = {}  # max event area per hex-month
     processed = 0
 
     for rg_idx in range(pf.metadata.num_row_groups):
@@ -120,8 +121,15 @@ def main() -> None:
                 continue
 
             hexes = polygon_to_h3_cells(geom_bytes, area, H3_RESOLUTION)
+            n_hexes = len(hexes)
+            # For polyfilled events spanning multiple hexes, divide area
+            per_hex_area = area / n_hexes if n_hexes > 0 else 0.0
             for h in hexes:
                 hex_month_counts[(h, ym)] += 1
+                key = (h, ym)
+                # Track max single-event area per hex-month
+                if key not in hex_month_area or per_hex_area > hex_month_area[key]:
+                    hex_month_area[key] = per_hex_area
 
             processed += 1
             if processed % 200_000 == 0:
@@ -139,7 +147,12 @@ def main() -> None:
 
     # Convert to DataFrame
     records = [
-        {"h3_index": k[0], "year_month": k[1], "flood_count": v}
+        {
+            "h3_index": k[0],
+            "year_month": k[1],
+            "flood_count": v,
+            "area_km2": hex_month_area.get(k, 0.0),
+        }
         for k, v in hex_month_counts.items()
     ]
     df = pd.DataFrame(records)

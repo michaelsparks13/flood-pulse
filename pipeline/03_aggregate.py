@@ -97,16 +97,57 @@ def main() -> None:
     flood_df["year"] = flood_df["year_month"].str[:4].astype(int)
 
     # ----- Per-hex, per-year: unique flooded hexes with year-specific pop -----
-    # Deduplicate: one row per (hex, year) regardless of how many months flooded
+    # Deduplicate: one row per (hex, year) regardless of how many months flooded.
+    # Keep the max event area across months for area-weighting.
+    agg_dict: dict = {"year_month": "nunique"}
+    has_area = "area_km2" in flood_df.columns
+    if has_area:
+        agg_dict["area_km2"] = "max"
+
     hex_year = (
         flood_df.groupby(["h3_index", "year"])
-        .agg(months_flooded=("year_month", "nunique"))
+        .agg(**{
+            "months_flooded": ("year_month", "nunique"),
+            **({"area_km2": ("area_km2", "max")} if has_area else {}),
+        })
         .reset_index()
     )
 
     # Join year-specific population
     hex_year = hex_year.merge(pop_df, on=["h3_index", "year"], how="left")
     hex_year["population"] = hex_year["population"].fillna(0)
+
+    # Area-weight: only count the fraction of each hex that actually flooded.
+    # Without this, a 2 km² flood claims the full population of a 252 km² hex.
+    #
+    # Groundsource area_km2 is the LOCATION POLYGON area (administrative
+    # boundary of the reported place), not actual inundation area. A flood
+    # reported "in Dhaka" gets Dhaka's full city polygon. We apply an
+    # inundation ratio to estimate what fraction was actually underwater.
+    # Literature suggests 5-15% of reported affected areas are inundated
+    # (varies by event scale and geography).
+    INUNDATION_RATIO = 0.10
+
+    if has_area:
+        inundation_km2 = hex_year["area_km2"] * INUNDATION_RATIO
+        hex_year["fraction_flooded"] = (
+            inundation_km2.clip(upper=H3_RES5_AREA_KM2) / H3_RES5_AREA_KM2
+        )
+    else:
+        # Fallback: estimate using median Groundsource event area (~2 km²).
+        # Re-run 01_hex_index.py for per-event areas when source data is available.
+        MEDIAN_EVENT_AREA_KM2 = 2.0
+        log.warning(
+            f"No area_km2 column — estimating with median event area "
+            f"({MEDIAN_EVENT_AREA_KM2} km²). Re-run 01_hex_index.py for exact areas."
+        )
+        hex_year["fraction_flooded"] = MEDIAN_EVENT_AREA_KM2 / H3_RES5_AREA_KM2
+
+    hex_year["population_exposed"] = hex_year["population"] * hex_year["fraction_flooded"]
+    log.info(
+        f"Area-weighted population (inundation ratio={INUNDATION_RATIO}, "
+        f"median fraction: {hex_year['fraction_flooded'].median():.4f})"
+    )
 
     # ----- Hex-level aggregates (for map tiles) -----
     hex_agg = (
@@ -139,7 +180,7 @@ def main() -> None:
     country_year = (
         hex_year_with_country.groupby(["country_code", "year"])
         .agg(
-            population_exposed=("population", "sum"),
+            population_exposed=("population_exposed", "sum"),
             unique_hexes=("h3_index", "nunique"),
         )
         .reset_index()
@@ -175,11 +216,11 @@ def main() -> None:
     except Exception:
         log.warning("Could not read raw record counts")
 
-    # Annual population exposed — each hex counted once per year
+    # Annual population exposed — each hex counted once per year, area-weighted
     yearly = (
         hex_year_with_country.groupby("year")
         .agg(
-            population_exposed=("population", "sum"),
+            population_exposed=("population_exposed", "sum"),
             hexes_flooded=("h3_index", "nunique"),
             countries=("country_code", "nunique"),
         )
@@ -204,7 +245,11 @@ def main() -> None:
             }
         )
 
+    # Determine latest month in the dataset
+    data_through = flood_df["year_month"].max()
+
     global_summary = {
+        "dataThrough": data_through,
         "byYear": by_year,
         "totals": {
             "populationExposed": round(cumulative),
