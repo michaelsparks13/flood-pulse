@@ -40,6 +40,7 @@ HEX_AGGREGATES_PARQUET = FINAL / "hex_aggregates.parquet"
 HEX_AGGREGATES_GEOJSON = FINAL / "hex_aggregates.geojson"
 COUNTRY_TIMESERIES_JSON = FINAL / "country_timeseries.json"
 GLOBAL_SUMMARY_JSON = FINAL / "global_summary.json"
+COMPARISON_JSON = FINAL / "comparison.json"
 
 ALL_DIRS = [RAW, PROCESSED, FINAL]
 
