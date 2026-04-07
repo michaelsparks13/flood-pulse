@@ -7,11 +7,23 @@ import "maplibre-gl/dist/maplibre-gl.css";
 
 interface GlobeProps {
   year: number;
+  showBoundaries?: boolean;
+  showLabels?: boolean;
+  satellite?: boolean;
+  hexOpacity?: number;
   onBasemapReady?: () => void;
   onDataReady?: () => void;
 }
 
-export default function Globe({ year, onBasemapReady, onDataReady }: GlobeProps) {
+export default function Globe({
+  year,
+  showBoundaries = false,
+  showLabels = false,
+  satellite = false,
+  hexOpacity = 0.9,
+  onBasemapReady,
+  onDataReady,
+}: GlobeProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -40,6 +52,23 @@ export default function Globe({ year, onBasemapReady, onDataReady }: GlobeProps)
           attribution:
             '&copy; <a href="https://carto.com/">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>',
         },
+        labels: {
+          type: "raster",
+          tiles: [
+            "https://a.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}@2x.png",
+          ],
+          tileSize: 256,
+        },
+        satellite: {
+          type: "raster",
+          tiles: [
+            "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+          ],
+          tileSize: 256,
+          attribution:
+            '&copy; <a href="https://www.esri.com/">Esri</a>, Maxar, Earthstar Geographics',
+          maxzoom: 17,
+        },
       },
       layers: [
         {
@@ -52,6 +81,17 @@ export default function Globe({ year, onBasemapReady, onDataReady }: GlobeProps)
           type: "raster",
           source: "basemap",
           paint: { "raster-opacity": 0.6, "raster-brightness-max": 0.5 },
+        },
+        {
+          id: "satellite-layer",
+          type: "raster",
+          source: "satellite",
+          paint: {
+            "raster-opacity": 0.85,
+            "raster-brightness-max": 0.7,
+            "raster-saturation": -0.2,
+          },
+          layout: { visibility: "none" },
         },
       ],
     };
@@ -87,6 +127,24 @@ export default function Globe({ year, onBasemapReady, onDataReady }: GlobeProps)
           "horizon-fog-blend": 0,
           "fog-ground-blend": 1,
         });
+
+        // Country boundaries (GeoJSON)
+        map.addSource("countries", {
+          type: "geojson",
+          data: "/data/ne_countries.geojson",
+        });
+
+        map.addLayer({
+          id: "country-boundaries",
+          type: "line",
+          source: "countries",
+          paint: {
+            "line-color": "#ffffff",
+            "line-opacity": 0,
+            "line-width": 0.8,
+          },
+        });
+
         // In dev, Next.js doesn't support range requests on static files,
         // so we proxy through an API route. On Vercel, serve directly from CDN.
         const isDev = process.env.NODE_ENV === "development";
@@ -135,6 +193,20 @@ export default function Globe({ year, onBasemapReady, onDataReady }: GlobeProps)
             "fill-opacity": 0.3,
           },
           filter: ["==", ["get", "h"], ""],
+        });
+
+        // Labels on top of everything — subdued opacity, cap zoom to reduce clutter
+        map.addLayer({
+          id: "labels",
+          type: "raster",
+          source: "labels",
+          maxzoom: 4,
+          paint: {
+            "raster-opacity": 0.4,
+          },
+          layout: {
+            visibility: "none",
+          },
         });
 
         setLoaded(true);
@@ -205,6 +277,50 @@ export default function Globe({ year, onBasemapReady, onDataReady }: GlobeProps)
     map.setFilter("hex-fill", filter);
     map.triggerRepaint();
   }, [year, loaded]);
+
+  // Toggle country boundaries via paint opacity (more reliable than layout visibility)
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !loaded) return;
+    const opacity = showBoundaries ? (satellite ? 0.35 : 0.15) : 0;
+    map.setPaintProperty("country-boundaries", "line-opacity", opacity);
+  }, [showBoundaries, satellite, loaded]);
+
+  // Toggle labels
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !loaded) return;
+    map.setLayoutProperty(
+      "labels",
+      "visibility",
+      showLabels ? "visible" : "none"
+    );
+  }, [showLabels, loaded]);
+
+  // Toggle satellite basemap
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !loaded) return;
+
+    if (satellite) {
+      map.setLayoutProperty("basemap", "visibility", "none");
+      map.setLayoutProperty("satellite-layer", "visibility", "visible");
+      map.setPaintProperty("country-boundaries", "line-width", 1.0);
+      map.setPaintProperty("background", "background-color", "#000000");
+    } else {
+      map.setLayoutProperty("basemap", "visibility", "visible");
+      map.setLayoutProperty("satellite-layer", "visibility", "none");
+      map.setPaintProperty("country-boundaries", "line-width", 0.8);
+      map.setPaintProperty("background", "background-color", "#07060d");
+    }
+  }, [satellite, loaded]);
+
+  // Update hex data opacity
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !loaded) return;
+    map.setPaintProperty("hex-fill", "fill-opacity", hexOpacity);
+  }, [hexOpacity, loaded]);
 
   return (
     <div

@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import ExposureCounter from "@/components/ExposureCounter";
 import TimelineSlider from "@/components/TimelineSlider";
 import MethodologyDrawer from "@/components/MethodologyDrawer";
+import LayersPanel from "@/components/LayersPanel";
 import type { GlobalSummary } from "@/lib/types";
 
 // Load Globe client-side only (MapLibre needs DOM)
@@ -17,6 +18,10 @@ export default function Home() {
   const [methodologyOpen, setMethodologyOpen] = useState(false);
   const [basemapReady, setBasemapReady] = useState(false);
   const [dataReady, setDataReady] = useState(false);
+  const [showBoundaries, setShowBoundaries] = useState(false);
+  const [showLabels, setShowLabels] = useState(false);
+  const [satellite, setSatellite] = useState(false);
+  const [hexOpacity, setHexOpacity] = useState(0.9);
 
   // Load global summary data
   useEffect(() => {
@@ -45,7 +50,15 @@ export default function Home() {
   return (
     <div className="relative w-screen h-screen overflow-hidden bg-bg">
       {/* Globe fills the viewport */}
-      <Globe year={year} onBasemapReady={handleBasemapReady} onDataReady={handleDataReady} />
+      <Globe
+        year={year}
+        showBoundaries={showBoundaries}
+        showLabels={showLabels}
+        satellite={satellite}
+        hexOpacity={hexOpacity}
+        onBasemapReady={handleBasemapReady}
+        onDataReady={handleDataReady}
+      />
 
       {/* Loading indicator — fades in after globe renders, fades out when hex data arrives */}
       <div
@@ -89,8 +102,18 @@ export default function Home() {
         <ExposureCounter summary={summary} year={year} />
       </div>
 
-      {/* Top-right: methodology button */}
+      {/* Top-right: methodology + layers */}
       <div className="absolute top-5 right-5 z-10 flex items-center gap-2">
+        <LayersPanel
+          showBoundaries={showBoundaries}
+          onBoundariesChange={setShowBoundaries}
+          showLabels={showLabels}
+          onLabelsChange={setShowLabels}
+          satellite={satellite}
+          onSatelliteChange={setSatellite}
+          hexOpacity={hexOpacity}
+          onHexOpacityChange={setHexOpacity}
+        />
         <MethodologyDrawer open={methodologyOpen} onOpenChange={setMethodologyOpen} />
       </div>
 
