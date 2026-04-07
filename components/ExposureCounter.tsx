@@ -37,6 +37,21 @@ export default function ExposureCounter({ summary, year }: ExposureCounterProps)
   const targetCountries = targetEntry?.countriesAffected ?? 0;
   const targetHexes = targetEntry?.hexesFlooded ?? 0;
 
+  // Detect partial year: if the selected year matches the last year in the
+  // dataset and dataThrough doesn't end in December, it's incomplete.
+  const dataThrough = summary?.dataThrough ?? "";
+  const lastDataYear = dataThrough ? parseInt(dataThrough.slice(0, 4)) : 0;
+  const lastDataMonth = dataThrough ? parseInt(dataThrough.slice(5, 7)) : 12;
+  const isPartialYear = year === lastDataYear && lastDataMonth < 12;
+
+  const monthNames = [
+    "", "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+  ];
+  const partialLabel = isPartialYear
+    ? `Jan\u2013${monthNames[lastDataMonth]} ${year}`
+    : `${year}`;
+
   useEffect(() => {
     if (animRef.current) cancelAnimationFrame(animRef.current);
 
@@ -89,7 +104,8 @@ export default function ExposureCounter({ summary, year }: ExposureCounterProps)
         {formatLargeNumber(displayValue)}
       </div>
       <div className="text-text-secondary text-sm mb-4">
-        people in flood-affected areas in {year}
+        people in flood-affected areas in{" "}
+        <span className="font-semibold text-text-primary">{partialLabel}</span>
       </div>
       <div className="flex gap-6 text-xs text-text-tertiary">
         <div>
@@ -107,7 +123,7 @@ export default function ExposureCounter({ summary, year }: ExposureCounterProps)
       </div>
       <div className="mt-2 text-[10px] text-text-tertiary/60 leading-relaxed max-w-70">
         {formatFullNumber(displayValue)} people lived in areas that experienced
-        flooding in {year}
+        flooding in {partialLabel}
       </div>
     </div>
   );

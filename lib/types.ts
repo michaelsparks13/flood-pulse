@@ -26,6 +26,8 @@ export interface CountryData {
 
 /** Global summary for the animated counter */
 export interface GlobalSummary {
+  /** Latest year-month in the dataset, e.g. "2026-02" */
+  dataThrough: string;
   byYear: {
     year: number;
     populationExposed: number;

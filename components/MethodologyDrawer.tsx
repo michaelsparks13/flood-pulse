@@ -151,6 +151,52 @@ export default function MethodologyDrawer({ open, onOpenChange }: MethodologyDra
 
               <section>
                 <h3 className="text-text-primary font-medium mb-2">
+                  Area Weighting &amp; Inundation Ratio
+                </h3>
+                <p>
+                  Groundsource polygons represent{" "}
+                  <em className="text-text-primary">where flooding was reported</em>,
+                  not{" "}
+                  <em className="text-text-primary">what area was underwater</em>.
+                  When Gemini extracts a flood event from a news article about
+                  &ldquo;flooding in Houston,&rdquo; the polygon covers all of
+                  Houston (~1,700 km²) — not just the streets and neighborhoods
+                  that actually flooded.
+                </p>
+                <p className="mt-2">
+                  Naively counting every person in a flooded hex as
+                  &ldquo;exposed&rdquo; would count the entire population of
+                  Houston for a flood that affected a few neighborhoods. At
+                  scale, this produces implausible numbers — nearly the entire
+                  world population in a single year.
+                </p>
+                <p className="mt-2">
+                  To correct for this, we apply two adjustments:
+                </p>
+                <ul className="list-disc list-inside space-y-1.5 text-text-tertiary mt-2">
+                  <li>
+                    <span className="text-text-secondary">Area weighting:</span>{" "}
+                    Each hex is weighted by{" "}
+                    <span className="text-text-primary font-mono text-xs">
+                      min(event_area / hex_area, 1.0)
+                    </span>
+                    {" "}so a 20 km² flood in a 252 km² hex only counts ~8%
+                    of that hex&rsquo;s population — not all of it.
+                  </li>
+                  <li>
+                    <span className="text-text-secondary">Inundation ratio (10%):</span>{" "}
+                    Since the event polygon is an administrative boundary, not a
+                    flood extent, we estimate that roughly 10% of the reported
+                    area was actually inundated. This ratio is consistent with
+                    flood inundation literature and produces annual exposure
+                    estimates (400&ndash;600M in recent years) that align with
+                    World Bank and UNDRR benchmarks.
+                  </li>
+                </ul>
+              </section>
+
+              <section>
+                <h3 className="text-text-primary font-medium mb-2">
                   Known Limitations
                 </h3>
                 <ul className="list-disc list-inside space-y-1.5 text-text-tertiary">
