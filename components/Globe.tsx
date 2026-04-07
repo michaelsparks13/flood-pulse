@@ -28,14 +28,6 @@ export default function Globe({ year }: GlobeProps) {
     const style: maplibregl.StyleSpecification = {
       version: 8,
       projection: { type: "globe" },
-      sky: {
-        "sky-color": "#07060d",
-        "horizon-color": "#141224",
-        "fog-color": "#07060d",
-        "sky-horizon-blend": 0.5,
-        "horizon-fog-blend": 0.5,
-        "fog-ground-blend": 0.5,
-      },
       sources: {
         basemap: {
           type: "raster",
@@ -84,6 +76,15 @@ export default function Globe({ year }: GlobeProps) {
       );
 
       map.on("load", () => {
+        // Disable globe atmosphere/horizon glow
+        map.setSky({
+          "sky-color": "#07060d",
+          "horizon-color": "#07060d",
+          "fog-color": "#07060d",
+          "sky-horizon-blend": 0,
+          "horizon-fog-blend": 0,
+          "fog-ground-blend": 1,
+        });
         // In dev, Next.js doesn't support range requests on static files,
         // so we proxy through an API route. On Vercel, serve directly from CDN.
         const isDev = process.env.NODE_ENV === "development";
@@ -106,7 +107,7 @@ export default function Globe({ year }: GlobeProps) {
             "fill-color": [
               "interpolate",
               ["linear"],
-              ["get", "pm"],
+              ["get", "p"],
               0, "#2c115f",
               1000, "#711f81",
               10000, "#b63679",
@@ -116,19 +117,8 @@ export default function Globe({ year }: GlobeProps) {
               5000000, "#fcffa4",
               20000000, "#ffffff",
             ],
+            "fill-antialias": false,
             "fill-opacity": 0.9,
-          },
-          filter: ["<=", ["get", "y0"], year],
-        });
-
-        map.addLayer({
-          id: "hex-outline",
-          type: "line",
-          source: "hexes",
-          "source-layer": "hexes",
-          paint: {
-            "line-color": "rgba(255, 255, 255, 0.25)",
-            "line-width": ["interpolate", ["linear"], ["zoom"], 2, 0, 5, 0.5],
           },
           filter: ["<=", ["get", "y0"], year],
         });
@@ -205,7 +195,6 @@ export default function Globe({ year }: GlobeProps) {
     if (!map || !loaded) return;
     const filter: maplibregl.FilterSpecification = ["<=", ["get", "y0"], year];
     map.setFilter("hex-fill", filter);
-    map.setFilter("hex-outline", filter);
     map.triggerRepaint();
   }, [year, loaded]);
 

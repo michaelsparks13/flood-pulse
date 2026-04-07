@@ -1,5 +1,7 @@
 "use client";
 
+import MetricExplainer from "./MetricExplainer";
+
 interface MethodologyDrawerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -102,7 +104,7 @@ export default function MethodologyDrawer({ open, onOpenChange }: MethodologyDra
 
               <section>
                 <h3 className="text-text-primary font-medium mb-2">
-                  Population Exposure
+                  Population Exposed
                 </h3>
                 <p>
                   Population data comes from the{" "}
@@ -114,15 +116,37 @@ export default function MethodologyDrawer({ open, onOpenChange }: MethodologyDra
                   >
                     Global Human Settlement Layer (GHS-POP)
                   </a>{" "}
-                  2020 epoch at 1 km resolution. For each flooded H3 hex, we
-                  compute the total population within its boundary using zonal
-                  statistics.
+                  R2023A at 1 km resolution. We use six epoch rasters (2000,
+                  2005, 2010, 2015, 2020, 2025) and linearly interpolate
+                  population for each year, so a flood in 2003 uses 2003
+                  population — not a static snapshot.
                 </p>
                 <p className="mt-2">
-                  <strong className="text-text-primary">Person-flood-months</strong>{" "}
-                  is defined as the sum of (population in hex × months that hex
-                  was flooded) across all hexes and all months.
+                  <strong className="text-text-primary">Population exposed</strong>{" "}
+                  is the number of people living in areas that experienced
+                  flooding in a given year. Each person is counted once per year
+                  regardless of how many months their area flooded. This follows
+                  the methodology established by{" "}
+                  <a
+                    href="https://www.nature.com/articles/s41586-021-03695-w"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-accent-bright underline underline-offset-2"
+                  >
+                    Tellman et&nbsp;al. (2021)
+                  </a>{" "}
+                  and the{" "}
+                  <a
+                    href="https://documents.worldbank.org/en/publication/documents-reports/documentdetail/669141603288540994/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-accent-bright underline underline-offset-2"
+                  >
+                    World Bank
+                  </a>
+                  .
                 </p>
+                <MetricExplainer />
               </section>
 
               <section>
@@ -138,22 +162,45 @@ export default function MethodologyDrawer({ open, onOpenChange }: MethodologyDra
                     primarily due to increased online news coverage.
                   </li>
                   <li>
-                    <span className="text-text-secondary">Static population:</span>{" "}
-                    We use 2020 population for all years. A flood in 2003 used
-                    2020 population density, which may overestimate exposure in
-                    areas that have grown.
+                    <span className="text-text-secondary">Population interpolation:</span>{" "}
+                    GHS-POP epochs are spaced five years apart. Population between
+                    epochs is linearly interpolated, which may not capture rapid
+                    urbanization or displacement events.
                   </li>
                   <li>
                     <span className="text-text-secondary">Spatial precision:</span>{" "}
                     Google reports 60% of events are spatially and temporally
-                    accurate, 82% are "practically useful." H3 res-5 hexagons
-                    (~252 km²) smooth over sub-hex errors.
+                    accurate, 82% are &ldquo;practically useful.&rdquo; H3 res-5
+                    hexagons (~252 km²) smooth over sub-hex errors.
                   </li>
                   <li>
                     <span className="text-text-secondary">No severity:</span>{" "}
                     Groundsource records presence of flooding, not depth,
                     duration, or damage. A minor street flood and a catastrophic
                     inundation are weighted equally.
+                  </li>
+                </ul>
+              </section>
+
+              <section>
+                <h3 className="text-text-primary font-medium mb-2">
+                  References
+                </h3>
+                <ul className="space-y-1.5 text-text-tertiary text-xs">
+                  <li>
+                    Tellman, B. et al. (2021). Satellite imaging reveals
+                    increased proportion of population exposed to floods.{" "}
+                    <em className="text-text-secondary">Nature</em> 596, 80-86.
+                  </li>
+                  <li>
+                    Rentschler, J. et al. (2020). People in Harm&rsquo;s Way:
+                    Flood Exposure and Poverty in 189 Countries.{" "}
+                    <em className="text-text-secondary">World Bank Policy Research WPS 9447</em>.
+                  </li>
+                  <li>
+                    Winsemius, H.C. et al. (2013). A framework for global river
+                    flood risk assessments.{" "}
+                    <em className="text-text-secondary">HESS</em> 17, 1871-1892.
                   </li>
                 </ul>
               </section>

@@ -2,7 +2,7 @@
 export interface HexAggregate {
   h3Index: string;
   totalMonthsFlooded: number;
-  cumulativePersonMonths: number;
+  totalYearsFlooded: number;
   population: number;
   firstFloodYear: number;
   lastFloodYear: number;
@@ -12,8 +12,8 @@ export interface HexAggregate {
 /** Country-level time series for drill-down */
 export interface CountryYear {
   year: number;
-  hexMonthsFlooded: number;
-  peopleExposed: number;
+  populationExposed: number;
+  hexesFlooded: number;
   areaKm2Flooded: number;
 }
 
@@ -28,13 +28,14 @@ export interface CountryData {
 export interface GlobalSummary {
   byYear: {
     year: number;
-    cumulativePersonMonths: number;
+    populationExposed: number;
+    cumulativePopulationExposed: number;
     rawRecordCount: number;
     countriesAffected: number;
     hexesFlooded: number;
   }[];
   totals: {
-    personMonths: number;
+    populationExposed: number;
     countries: number;
     hexesEverFlooded: number;
     areaKm2: number;

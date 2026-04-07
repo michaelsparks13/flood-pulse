@@ -33,7 +33,7 @@ export default function ExposureCounter({ summary, year }: ExposureCounterProps)
 
   // Find the target value for the current year
   const targetEntry = summary?.byYear.find((e) => e.year === year);
-  const targetValue = targetEntry?.cumulativePersonMonths ?? 0;
+  const targetValue = targetEntry?.populationExposed ?? 0;
   const targetCountries = targetEntry?.countriesAffected ?? 0;
   const targetHexes = targetEntry?.hexesFlooded ?? 0;
 
@@ -83,13 +83,13 @@ export default function ExposureCounter({ summary, year }: ExposureCounterProps)
   return (
     <div className="pointer-events-none select-none">
       <div className="text-text-tertiary text-xs font-medium uppercase tracking-widest mb-1">
-        Cumulative flood exposure
+        Population exposed
       </div>
       <div className="counter-glow font-(--font-mono) text-4xl sm:text-5xl font-bold text-accent-bright leading-none mb-2">
         {formatLargeNumber(displayValue)}
       </div>
       <div className="text-text-secondary text-sm mb-4">
-        people &times; months of flooding since 2000
+        people in flood-affected areas in {year}
       </div>
       <div className="flex gap-6 text-xs text-text-tertiary">
         <div>
@@ -106,8 +106,8 @@ export default function ExposureCounter({ summary, year }: ExposureCounterProps)
         </div>
       </div>
       <div className="mt-2 text-[10px] text-text-tertiary/60 leading-relaxed max-w-70">
-        {formatFullNumber(displayValue)} person-months — each person counted
-        once for each month their area was flooded
+        {formatFullNumber(displayValue)} people lived in areas that experienced
+        flooding in {year}
       </div>
     </div>
   );
