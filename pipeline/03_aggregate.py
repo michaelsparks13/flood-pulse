@@ -163,6 +163,49 @@ def main() -> None:
         .reset_index()
     )
 
+    # ----- Frequency trend & return period per hex -----
+    # For each hex, build a binary yearly flood indicator across the full year
+    # range, then fit OLS to get a trend slope.  Positive = flooding more often.
+    all_years = sorted(hex_year["year"].unique())
+    year_span = len(all_years)
+    year_set_by_hex: dict[str, set[int]] = defaultdict(set)
+    for h, y in zip(hex_year["h3_index"], hex_year["year"]):
+        year_set_by_hex[h].add(y)
+
+    ft_values: list[float] = []
+    rp_values: list[float] = []
+    for h3_idx in hex_agg["h3_index"]:
+        flooded_years = year_set_by_hex.get(h3_idx, set())
+        # Binary indicator: 1 if flooded that year, 0 otherwise
+        xs = np.array(all_years, dtype=float)
+        ys = np.array([1.0 if y in flooded_years else 0.0 for y in all_years])
+
+        # OLS slope (trend per year), scaled to approx -50..+50 range
+        if year_span >= 2:
+            xm, ym = xs.mean(), ys.mean()
+            denom = ((xs - xm) ** 2).sum()
+            slope = ((xs - xm) * (ys - ym)).sum() / denom if denom > 0 else 0.0
+            # Slope is change-in-probability per year; multiply by year_span
+            # to get a total-change score, then scale by 100 for the -50..+50 range
+            ft = float(np.clip(slope * year_span * 100, -50, 50))
+        else:
+            ft = 0.0
+
+        # Return period: average years between floods
+        n_flooded = len(flooded_years)
+        rp = round(year_span / n_flooded, 1) if n_flooded >= 2 else 0.0
+
+        ft_values.append(round(ft, 1))
+        rp_values.append(rp)
+
+    hex_agg["frequency_trend"] = ft_values
+    hex_agg["return_period"] = rp_values
+    log.info(
+        f"Frequency trends: mean={np.mean(ft_values):.2f}, "
+        f"std={np.std(ft_values):.2f}, "
+        f"hexes with rp>0: {sum(1 for v in rp_values if v > 0):,}"
+    )
+
     # Assign countries
     country_map = assign_countries(
         hex_agg["h3_index"].tolist(), str(NATURAL_EARTH_GEOJSON)

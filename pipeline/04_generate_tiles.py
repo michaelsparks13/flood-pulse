@@ -84,6 +84,8 @@ def main() -> None:
                 "y0": int(row["first_flood_year"]),
                 "y1": int(row["last_flood_year"]),
                 "cc": row["country_code"],
+                "ft": round(float(row.get("frequency_trend", 0)), 1),
+                "rp": round(float(row.get("return_period", 0)), 1),
             },
         }
         features.append(feature)
