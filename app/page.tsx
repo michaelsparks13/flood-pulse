@@ -7,6 +7,7 @@ import FrequencyChart from "@/components/FrequencyChart";
 import TimelineSlider from "@/components/TimelineSlider";
 import MethodologyDrawer from "@/components/MethodologyDrawer";
 import LayersPanel from "@/components/LayersPanel";
+import ComparisonPopover from "@/components/ComparisonPopover";
 import type { GlobalSummary, MapMode } from "@/lib/types";
 
 // Load Globe client-side only (MapLibre needs DOM)
@@ -106,8 +107,9 @@ export default function Home() {
         <FrequencyChart summary={summary} />
       </div>
 
-      {/* Top-right: methodology + layers */}
+      {/* Top-right: compare + layers + methodology */}
       <div className="absolute top-5 right-5 z-10 flex items-center gap-2">
+        <ComparisonPopover />
         <LayersPanel
           showBoundaries={showBoundaries}
           onBoundariesChange={setShowBoundaries}
