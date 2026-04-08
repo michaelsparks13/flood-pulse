@@ -61,7 +61,7 @@ export default function FrequencyChart({ summary }: FrequencyChartProps) {
     <div className="mt-4 pt-4 border-t border-border">
       <div className="flex items-baseline justify-between mb-2">
         <div className="text-[10px] text-text-tertiary uppercase tracking-widest font-medium">
-          Unique hexes flooded / year
+          Flood extent
         </div>
       </div>
 
@@ -101,7 +101,7 @@ export default function FrequencyChart({ summary }: FrequencyChartProps) {
               labelStyle={{ color: "#f1f5f9", fontWeight: 600 }}
               formatter={(value: number, name: string) => {
                 if (name === "hexes")
-                  return [value.toLocaleString(), "Hexes flooded"];
+                  return [value.toLocaleString(), "Areas affected"];
                 return [value.toLocaleString(), "Trend"];
               }}
             />
@@ -133,8 +133,8 @@ export default function FrequencyChart({ summary }: FrequencyChartProps) {
         <span>{data[data.length - 1]?.year}</span>
       </div>
       <p className="text-[9px] text-text-tertiary/50 mt-1.5 leading-relaxed">
-        Dashed line = linear trend. Detection bias: 64% of Groundsource records
-        are from 2020&ndash;2025 due to news coverage growth.
+        Distinct areas (~253 km² each) with &ge;1 flood event per year.
+        Dashed line = linear trend.
       </p>
     </div>
   );
