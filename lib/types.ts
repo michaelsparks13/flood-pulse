@@ -1,6 +1,25 @@
 /** Map color mode */
 export type MapMode = "exposure" | "frequency";
 
+/** Compact hex datum for deck.gl H3HexagonLayer */
+export interface HexDatum {
+  h: string;   // H3 index
+  m: number;   // total months flooded
+  yf: number;  // total years flooded
+  p: number;   // population
+  y0: number;  // first flood year
+  y1: number;  // last flood year
+  cc: string;  // country code
+  ft: number;  // frequency trend (-50 to +50)
+  rp: number;  // return period (years)
+}
+
+/** Wire format for hex_compact.json */
+export interface HexCompactJSON {
+  columns: string[];
+  rows: (string | number)[][];
+}
+
 /** Hex-level aggregate for the map layer */
 export interface HexAggregate {
   h3Index: string;

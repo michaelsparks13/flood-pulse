@@ -1,37 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
-import { Protocol } from "pmtiles";
 import "maplibre-gl/dist/maplibre-gl.css";
-import type { MapMode } from "@/lib/types";
-
-/** Population exposure: magma-inspired sequential palette */
-const EXPOSURE_PAINT: maplibregl.ExpressionSpecification = [
-  "interpolate",
-  ["linear"],
-  ["get", "p"],
-  0, "#2c115f",
-  1000, "#711f81",
-  10000, "#b63679",
-  50000, "#e85a5a",
-  200000, "#f8945e",
-  1000000, "#fdd162",
-  5000000, "#fcffa4",
-  20000000, "#ffffff",
-];
-
-/** Frequency trend: diverging blue -> white -> red (RdBu) */
-const FREQUENCY_PAINT: maplibregl.ExpressionSpecification = [
-  "interpolate",
-  ["linear"],
-  ["get", "ft"],
-  -50, "#2166ac",
-  -25, "#67a9cf",
-  0, "#f0f0f0",
-  25, "#ef8a62",
-  50, "#b2182b",
-];
+import { MapboxOverlay } from "@deck.gl/mapbox";
+import { H3HexagonLayer } from "@deck.gl/geo-layers";
+import { DataFilterExtension } from "@deck.gl/extensions";
+import type { MapMode, HexDatum, HexCompactJSON } from "@/lib/types";
+import { getExposureRGBA, getFrequencyRGBA } from "@/lib/colors";
 
 function formatPopulation(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
@@ -45,6 +21,19 @@ function trendLabel(ft: number): string {
   if (ft > -5) return "Stable";
   if (ft > -15) return "Decreasing";
   return "Strongly decreasing";
+}
+
+function buildPopupHTML(d: HexDatum): string {
+  const trendColor = d.ft > 5 ? "#ef8a62" : d.ft < -5 ? "#67a9cf" : "#94a3b8";
+  let html = `<div style="font-family: system-ui, sans-serif; font-size: 12px; line-height: 1.6;">`;
+  html += `<div style="font-weight: 600; margin-bottom: 4px; color: #f1f5f9;">${formatPopulation(d.p)} people</div>`;
+  html += `<div style="color: #94a3b8;">Flooded <strong style="color:#f1f5f9">${d.yf}</strong> of ${d.y1 - d.y0 + 1} years (${d.m} months total)</div>`;
+  html += `<div style="color: ${trendColor}; margin-top: 4px;">Trend: ${trendLabel(d.ft)}</div>`;
+  if (d.rp > 0) {
+    html += `<div style="color: #94a3b8; margin-top: 2px;">Floods roughly every <strong style="color:#f1f5f9">${d.rp < 2 ? d.rp.toFixed(1) : Math.round(d.rp)}</strong> years</div>`;
+  }
+  html += `</div>`;
+  return html;
 }
 
 interface GlobeProps {
@@ -71,64 +60,37 @@ export default function Globe({
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const popupRef = useRef<maplibregl.Popup | null>(null);
+  const overlayRef = useRef<MapboxOverlay | null>(null);
+  const hexDataRef = useRef<HexDatum[] | null>(null);
   const [loaded, setLoaded] = useState(false);
-  const rotationRef = useRef<number | null>(null);
+  const [dataLoaded, setDataLoaded] = useState(false);
 
-  // Hover popup handler
-  const handleHover = useCallback(
-    (e: maplibregl.MapMouseEvent & { features?: maplibregl.MapGeoJSONFeature[] }) => {
-      const map = mapRef.current;
-      if (!map || !e.features?.[0]) return;
-
-      const props = e.features[0].properties;
-      if (!props) return;
-
-      map.setFilter("hex-hover", ["==", ["get", "h"], props.h ?? ""]);
-
-      const pop = Number(props.p ?? 0);
-      const yf = Number(props.yf ?? 0);
-      const m = Number(props.m ?? 0);
-      const ft = Number(props.ft ?? 0);
-      const rp = Number(props.rp ?? 0);
-      const y0 = Number(props.y0 ?? 0);
-      const y1 = Number(props.y1 ?? 0);
-
-      let html = `<div style="font-family: system-ui, sans-serif; font-size: 12px; line-height: 1.6;">`;
-      html += `<div style="font-weight: 600; margin-bottom: 4px; color: #f1f5f9;">${formatPopulation(pop)} people</div>`;
-      html += `<div style="color: #94a3b8;">Flooded <strong style="color:#f1f5f9">${yf}</strong> of ${y1 - y0 + 1} years (${m} months total)</div>`;
-
-      const trendColor = ft > 5 ? "#ef8a62" : ft < -5 ? "#67a9cf" : "#94a3b8";
-      html += `<div style="color: ${trendColor}; margin-top: 4px;">Trend: ${trendLabel(ft)}</div>`;
-
-      if (rp > 0) {
-        html += `<div style="color: #94a3b8; margin-top: 2px;">Floods roughly every <strong style="color:#f1f5f9">${rp < 2 ? rp.toFixed(1) : Math.round(rp)}</strong> years</div>`;
-      }
-
-      html += `</div>`;
-
-      if (!popupRef.current) {
-        popupRef.current = new maplibregl.Popup({
-          closeButton: false,
-          closeOnClick: false,
-          maxWidth: "260px",
-          offset: 12,
+  // Fetch compact hex data once on mount
+  useEffect(() => {
+    fetch("/data/hex_compact.json")
+      .then((r) => r.json())
+      .then((json: HexCompactJSON) => {
+        const { columns, rows } = json;
+        const data: HexDatum[] = rows.map((row) => {
+          const obj: Record<string, string | number> = {};
+          columns.forEach((col, i) => {
+            obj[col] = row[i];
+          });
+          return obj as unknown as HexDatum;
         });
-      }
+        console.log(`[FloodPulse] Loaded ${data.length} hexes`);
+        hexDataRef.current = data;
+        setDataLoaded(true);
+      })
+      .catch((err) => console.error("[FloodPulse] Data load failed:", err));
+  }, []);
 
-      popupRef.current.setLngLat(e.lngLat).setHTML(html).addTo(map);
-    },
-    [],
-  );
-
+  // Initialize MapLibre map
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
 
     const container = containerRef.current;
     let cancelled = false;
-
-    // Register PMTiles protocol for maplibre
-    const protocol = new Protocol();
-    maplibregl.addProtocol("pmtiles", protocol.tile);
 
     const style: maplibregl.StyleSpecification = {
       version: 8,
@@ -209,7 +171,6 @@ export default function Globe({
       );
 
       map.on("load", () => {
-        // Disable globe atmosphere/horizon glow
         map.setSky({
           "sky-color": "#07060d",
           "horizon-color": "#07060d",
@@ -219,7 +180,6 @@ export default function Globe({
           "fog-ground-blend": 1,
         });
 
-        // Country boundaries (GeoJSON)
         map.addSource("countries", {
           type: "geojson",
           data: "/data/ne_countries.geojson",
@@ -236,134 +196,134 @@ export default function Globe({
           },
         });
 
-        // In dev, Next.js doesn't support range requests on static files,
-        // so we proxy through an API route. On Vercel, serve directly from CDN.
-        const isDev = process.env.NODE_ENV === "development";
-        const origin = window.location.origin;
-        const pmtilesUrl = isDev
-          ? `${origin}/api/tiles`
-          : `${origin}/data/flood_pulse.pmtiles`;
-
-        map.addSource("hexes", {
-          type: "vector",
-          url: `pmtiles://${pmtilesUrl}`,
-        });
-
-        map.addLayer({
-          id: "hex-fill",
-          type: "fill",
-          source: "hexes",
-          "source-layer": "hexes",
-          paint: {
-            "fill-color": [
-              "interpolate",
-              ["linear"],
-              ["get", "p"],
-              0, "#2c115f",
-              1000, "#711f81",
-              10000, "#b63679",
-              50000, "#e85a5a",
-              200000, "#f8945e",
-              1000000, "#fdd162",
-              5000000, "#fcffa4",
-              20000000, "#ffffff",
-            ],
-            "fill-antialias": false,
-            "fill-opacity": 0.9,
-          },
-          filter: ["<=", ["get", "y0"], year],
-        });
-
-        map.addLayer({
-          id: "hex-hover",
-          type: "fill",
-          source: "hexes",
-          "source-layer": "hexes",
-          paint: {
-            "fill-color": "#fcffa4",
-            "fill-opacity": 0.3,
-          },
-          filter: ["==", ["get", "h"], ""],
-        });
-
-        // Labels on top of everything — subdued opacity, cap zoom to reduce clutter
         map.addLayer({
           id: "labels",
           type: "raster",
           source: "labels",
           maxzoom: 4,
-          paint: {
-            "raster-opacity": 0.4,
-          },
-          layout: {
-            visibility: "none",
-          },
+          paint: { "raster-opacity": 0.4 },
+          layout: { visibility: "none" },
         });
 
         setLoaded(true);
         onBasemapReady?.();
-
-        // Fire once hex tiles finish rendering
-        map.once("idle", () => {
-          onDataReady?.();
-        });
-
-        // Slow auto-rotation
-        const rotate = () => {
-          if (!mapRef.current) return;
-          const center = map.getCenter();
-          map.jumpTo({ center: [center.lng + 0.015, center.lat] });
-          rotationRef.current = requestAnimationFrame(rotate);
-        };
-        rotationRef.current = requestAnimationFrame(rotate);
       });
-
-      // Hover with tooltip
-      map.on("mousemove", "hex-fill", handleHover);
-      map.on("mouseleave", "hex-fill", () => {
-        map.setFilter("hex-hover", ["==", ["get", "h"], ""]);
-        popupRef.current?.remove();
-      });
-
-      // Stop rotation on interaction
-      const stopRotation = () => {
-        if (rotationRef.current !== null) {
-          cancelAnimationFrame(rotationRef.current);
-          rotationRef.current = null;
-        }
-      };
-      map.on("mousedown", stopRotation);
-      map.on("touchstart", stopRotation);
-      map.on("wheel", stopRotation);
 
       mapRef.current = map;
+
+      // Expose on window for Playwright tests
+      if (typeof window !== "undefined") {
+        (window as unknown as { __map: maplibregl.Map }).__map = map;
+      }
     });
 
     return () => {
       cancelled = true;
-      if (rotationRef.current !== null) {
-        cancelAnimationFrame(rotationRef.current);
-        rotationRef.current = null;
-      }
       popupRef.current?.remove();
+      if (overlayRef.current && mapRef.current) {
+        mapRef.current.removeControl(overlayRef.current as unknown as maplibregl.IControl);
+        overlayRef.current = null;
+      }
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;
       }
-      maplibregl.removeProtocol("pmtiles");
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Update year filter
+  // ── deck.gl overlay: create once, update layers on prop changes ──────
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !loaded) return;
-    const filter: maplibregl.FilterSpecification = ["<=", ["get", "y0"], year];
-    map.setFilter("hex-fill", filter);
-    map.triggerRepaint();
-  }, [year, loaded]);
+    if (!map || !loaded || !dataLoaded) return;
 
-  // Toggle country boundaries via paint opacity (more reliable than layout visibility)
+    const hexData = hexDataRef.current;
+    if (!hexData) return;
+
+    const colorFn =
+      mapMode === "frequency"
+        ? (d: HexDatum) => getFrequencyRGBA(d.ft)
+        : (d: HexDatum) => getExposureRGBA(d.p);
+
+    const alpha = Math.round(hexOpacity * 255);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const layer = new (H3HexagonLayer as any)({
+      id: "h3-hexes",
+      data: hexData,
+      getHexagon: (d: HexDatum) => d.h,
+      getFillColor: (d: HexDatum) => {
+        const [r, g, b] = colorFn(d);
+        return [r, g, b, alpha];
+      },
+      filled: true,
+      stroked: false,
+      extruded: false,
+      pickable: true,
+      autoHighlight: true,
+      highlightColor: [252, 255, 164, 77],
+
+      // GPU year filter
+      extensions: [new DataFilterExtension({ filterSize: 1 })],
+      getFilterValue: (d: HexDatum) => d.y0,
+      filterRange: [0, year],
+
+      updateTriggers: {
+        getFillColor: [mapMode, hexOpacity],
+      },
+
+      onHover: (info: any) => {
+        if (!info.object) {
+          popupRef.current?.remove();
+          return;
+        }
+        const d = info.object as HexDatum;
+        if (!popupRef.current) {
+          popupRef.current = new maplibregl.Popup({
+            closeButton: false,
+            closeOnClick: false,
+            maxWidth: "260px",
+            offset: 12,
+          });
+        }
+        popupRef.current
+          .setLngLat(info.coordinate as [number, number])
+          .setHTML(buildPopupHTML(d))
+          .addTo(map);
+      },
+    });
+
+    if (!overlayRef.current) {
+      try {
+        const overlay = new MapboxOverlay({
+          interleaved: true,
+          layers: [layer],
+        });
+        map.addControl(overlay as unknown as maplibregl.IControl);
+        overlayRef.current = overlay;
+        console.log("[FloodPulse] deck.gl overlay added (interleaved)");
+        onDataReady?.();
+      } catch (err) {
+        console.error("[FloodPulse] Interleaved mode failed, trying overlaid:", err);
+        // Fallback to non-interleaved (overlaid canvas)
+        try {
+          const overlay = new MapboxOverlay({
+            interleaved: false,
+            layers: [layer],
+          });
+          map.addControl(overlay as unknown as maplibregl.IControl);
+          overlayRef.current = overlay;
+          console.log("[FloodPulse] deck.gl overlay added (overlaid fallback)");
+          onDataReady?.();
+        } catch (err2) {
+          console.error("[FloodPulse] Overlaid mode also failed:", err2);
+        }
+      }
+    } else {
+      overlayRef.current.setProps({ layers: [layer] });
+    }
+  }, [dataLoaded, year, mapMode, hexOpacity, loaded]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Toggle country boundaries
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !loaded) return;
@@ -375,11 +335,7 @@ export default function Globe({
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !loaded) return;
-    map.setLayoutProperty(
-      "labels",
-      "visibility",
-      showLabels ? "visible" : "none"
-    );
+    map.setLayoutProperty("labels", "visibility", showLabels ? "visible" : "none");
   }, [showLabels, loaded]);
 
   // Toggle satellite basemap
@@ -399,22 +355,6 @@ export default function Globe({
       map.setPaintProperty("background", "background-color", "#07060d");
     }
   }, [satellite, loaded]);
-
-  // Update hex data opacity
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !loaded) return;
-    map.setPaintProperty("hex-fill", "fill-opacity", hexOpacity);
-  }, [hexOpacity, loaded]);
-
-  // Update color paint when map mode changes
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !loaded) return;
-    const paint = mapMode === "frequency" ? FREQUENCY_PAINT : EXPOSURE_PAINT;
-    map.setPaintProperty("hex-fill", "fill-color", paint as any);
-    map.triggerRepaint();
-  }, [mapMode, loaded]);
 
   return (
     <div

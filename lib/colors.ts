@@ -73,3 +73,55 @@ export function exposureColor(normalized: number): string {
   }
   return EXPOSURE_STOPS[0][1];
 }
+
+// ─── deck.gl RGBA color scales ──────────────────────────────────────────
+
+type RGBStop = [number, [number, number, number]];
+
+function interpolateRGBA(
+  value: number,
+  stops: RGBStop[],
+): [number, number, number] {
+  if (value <= stops[0][0]) return stops[0][1];
+  if (value >= stops[stops.length - 1][0]) return stops[stops.length - 1][1];
+  for (let i = 0; i < stops.length - 1; i++) {
+    if (value <= stops[i + 1][0]) {
+      const t = (value - stops[i][0]) / (stops[i + 1][0] - stops[i][0]);
+      return [
+        Math.round(stops[i][1][0] + t * (stops[i + 1][1][0] - stops[i][1][0])),
+        Math.round(stops[i][1][1] + t * (stops[i + 1][1][1] - stops[i][1][1])),
+        Math.round(stops[i][1][2] + t * (stops[i + 1][1][2] - stops[i][1][2])),
+      ];
+    }
+  }
+  return stops[0][1];
+}
+
+/** Exposure: population → magma-style RGB (same stops as Globe.tsx EXPOSURE_PAINT) */
+const EXPOSURE_RGBA_STOPS: RGBStop[] = [
+  [0, [44, 17, 95]],
+  [1000, [113, 31, 129]],
+  [10000, [182, 54, 121]],
+  [50000, [232, 90, 90]],
+  [200000, [248, 148, 94]],
+  [1000000, [253, 209, 98]],
+  [5000000, [252, 255, 164]],
+  [20000000, [255, 255, 255]],
+];
+
+/** Frequency: trend → diverging RdBu RGB (same stops as Globe.tsx FREQUENCY_PAINT) */
+const FREQUENCY_RGBA_STOPS: RGBStop[] = [
+  [-50, [33, 102, 172]],
+  [-25, [103, 169, 207]],
+  [0, [240, 240, 240]],
+  [25, [239, 138, 98]],
+  [50, [178, 24, 43]],
+];
+
+export function getExposureRGBA(population: number): [number, number, number] {
+  return interpolateRGBA(population, EXPOSURE_RGBA_STOPS);
+}
+
+export function getFrequencyRGBA(trend: number): [number, number, number] {
+  return interpolateRGBA(trend, FREQUENCY_RGBA_STOPS);
+}

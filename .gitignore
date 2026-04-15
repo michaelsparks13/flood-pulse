@@ -5,3 +5,5 @@ out
 *.tsbuildinfo
 __pycache__
 pipeline/data/raw/*.tif
+test-results/
+playwright-report/
