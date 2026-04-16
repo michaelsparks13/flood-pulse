@@ -40,12 +40,12 @@ export default function MethodologyDrawer({ open, onOpenChange }: MethodologyDra
       {open && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-5 sm:p-8"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setOpen(false);
-          }}
         >
-          {/* Backdrop */}
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+          {/* Backdrop — dedicated div with pointerdown for reliable mobile close */}
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onPointerDown={() => setOpen(false)}
+          />
 
           {/* Modal */}
           <div

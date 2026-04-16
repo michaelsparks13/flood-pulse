@@ -122,12 +122,18 @@ export default function TimelineSlider({
           className="flex-1 h-2 rounded-full appearance-none cursor-pointer
                      bg-white/10 accent-accent-bright
                      [&::-webkit-slider-thumb]:appearance-none
-                     [&::-webkit-slider-thumb]:w-5
-                     [&::-webkit-slider-thumb]:h-5
+                     [&::-webkit-slider-thumb]:w-7
+                     [&::-webkit-slider-thumb]:h-7
                      [&::-webkit-slider-thumb]:rounded-full
                      [&::-webkit-slider-thumb]:bg-accent-bright
                      [&::-webkit-slider-thumb]:shadow-[0_0_12px_rgba(252,255,164,0.4)]
-                     [&::-webkit-slider-thumb]:cursor-pointer"
+                     [&::-webkit-slider-thumb]:cursor-pointer
+                     [&::-moz-range-thumb]:w-7
+                     [&::-moz-range-thumb]:h-7
+                     [&::-moz-range-thumb]:rounded-full
+                     [&::-moz-range-thumb]:bg-accent-bright
+                     [&::-moz-range-thumb]:border-0
+                     [&::-moz-range-thumb]:cursor-pointer"
         />
 
         {/* End year */}

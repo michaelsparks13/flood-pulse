@@ -294,6 +294,27 @@ export default function Globe({
           .setHTML(buildPopupHTML(d))
           .addTo(map);
       },
+
+      // Touch tap support — show the same popup on click for mobile users
+      onClick: (info: any) => {
+        if (!info.object) {
+          popupRef.current?.remove();
+          return;
+        }
+        const d = info.object as HexDatum;
+        if (!popupRef.current) {
+          popupRef.current = new maplibregl.Popup({
+            closeButton: false,
+            closeOnClick: false,
+            maxWidth: "260px",
+            offset: 12,
+          });
+        }
+        popupRef.current
+          .setLngLat(info.coordinate as [number, number])
+          .setHTML(buildPopupHTML(d))
+          .addTo(map);
+      },
     });
 
     const triggerReveal = () => {

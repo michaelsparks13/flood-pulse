@@ -19,13 +19,13 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
       role="switch"
       aria-checked={checked}
       onClick={() => onChange(!checked)}
-      className={`relative w-8 h-[18px] rounded-full transition-colors cursor-pointer shrink-0 ${
+      className={`relative w-9 h-6 rounded-full transition-colors cursor-pointer shrink-0 ${
         checked ? "bg-white/20" : "bg-white/[0.06]"
       }`}
     >
       <span
-        className={`absolute top-[2px] left-[2px] w-[14px] h-[14px] rounded-full transition-all duration-150 ${
-          checked ? "translate-x-[14px] bg-text-primary" : "bg-text-tertiary"
+        className={`absolute top-0.75 left-0.75 w-4.5 h-4.5 rounded-full transition-all duration-150 ${
+          checked ? "translate-x-3.75 bg-text-primary" : "bg-text-tertiary"
         }`}
       />
     </button>
@@ -45,16 +45,16 @@ export default function LayersPanel({
   const [open, setOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
 
-  // Click-outside to close
+  // Click/tap outside to close (pointerdown works for both mouse and touch)
   useEffect(() => {
     if (!open) return;
-    const handler = (e: MouseEvent) => {
+    const handler = (e: PointerEvent) => {
       if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
         setOpen(false);
       }
     };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+    document.addEventListener("pointerdown", handler);
+    return () => document.removeEventListener("pointerdown", handler);
   }, [open]);
 
   return (
@@ -131,14 +131,14 @@ export default function LayersPanel({
               className="w-full h-1.5 rounded-full appearance-none cursor-pointer
                          bg-white/10
                          [&::-webkit-slider-thumb]:appearance-none
-                         [&::-webkit-slider-thumb]:w-3.5
-                         [&::-webkit-slider-thumb]:h-3.5
+                         [&::-webkit-slider-thumb]:w-6
+                         [&::-webkit-slider-thumb]:h-6
                          [&::-webkit-slider-thumb]:rounded-full
                          [&::-webkit-slider-thumb]:bg-accent-bright
                          [&::-webkit-slider-thumb]:shadow-[0_0_6px_rgba(252,255,164,0.3)]
                          [&::-webkit-slider-thumb]:cursor-pointer
-                         [&::-moz-range-thumb]:w-3.5
-                         [&::-moz-range-thumb]:h-3.5
+                         [&::-moz-range-thumb]:w-6
+                         [&::-moz-range-thumb]:h-6
                          [&::-moz-range-thumb]:rounded-full
                          [&::-moz-range-thumb]:bg-accent-bright
                          [&::-moz-range-thumb]:border-0

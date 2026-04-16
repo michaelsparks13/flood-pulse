@@ -11,10 +11,29 @@ export default defineConfig({
     baseURL: "http://localhost:3000",
     trace: "on-first-retry",
   },
+  expect: {
+    toHaveScreenshot: { maxDiffPixelRatio: 0.02 },
+  },
   projects: [
     {
-      name: "chromium",
+      name: "desktop",
+      testIgnore: "**/mobile/**",
       use: { ...devices["Desktop Chrome"] },
+    },
+    {
+      name: "mobile-iphone-se",
+      testMatch: "**/mobile/*.spec.ts",
+      use: { ...devices["iPhone SE"] },
+    },
+    {
+      name: "mobile-iphone-14",
+      testMatch: "**/mobile/*.spec.ts",
+      use: { ...devices["iPhone 14"] },
+    },
+    {
+      name: "mobile-pixel-7",
+      testMatch: "**/mobile/*.spec.ts",
+      use: { ...devices["Pixel 7"] },
     },
   ],
 });

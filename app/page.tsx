@@ -212,7 +212,7 @@ export default function Home() {
       </div>
 
       {/* Top-left: counter + title */}
-      <div className="absolute top-5 left-5 sm:top-8 sm:left-8 z-10 max-w-sm bg-panel/80 backdrop-blur-xl rounded-2xl border border-border shadow-[0_4px_24px_rgba(0,0,0,0.3)] p-5 sm:p-6">
+      <div data-testid="info-panel" className="absolute top-14 left-5 sm:top-8 sm:left-8 z-10 max-w-[calc(100vw-2.5rem)] sm:max-w-sm bg-panel/80 backdrop-blur-xl rounded-2xl border border-border shadow-[0_4px_24px_rgba(0,0,0,0.3)] p-5 sm:p-6">
         <h1 className="text-text-primary text-xl font-semibold mb-1 tracking-tight">
           FloodPulse
         </h1>

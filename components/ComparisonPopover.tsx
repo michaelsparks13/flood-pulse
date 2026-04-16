@@ -20,16 +20,16 @@ export default function ComparisonPopover() {
     }
   }, [open, data]);
 
-  // Click-outside to close
+  // Click/tap outside to close (pointerdown works for both mouse and touch)
   useEffect(() => {
     if (!open) return;
-    const handler = (e: MouseEvent) => {
+    const handler = (e: PointerEvent) => {
       if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
         setOpen(false);
       }
     };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+    document.addEventListener("pointerdown", handler);
+    return () => document.removeEventListener("pointerdown", handler);
   }, [open]);
 
   return (
@@ -64,7 +64,8 @@ export default function ComparisonPopover() {
       {/* Popover panel */}
       {open && (
         <div
-          className="absolute top-full right-0 mt-2 w-72 bg-panel-solid backdrop-blur-xl rounded-xl border border-border shadow-[0_4px_24px_rgba(0,0,0,0.4)] p-4 animate-[fadeScaleIn_0.15s_ease-out]"
+          data-testid="comparison-popover"
+          className="absolute top-full left-0 sm:left-auto sm:right-0 mt-2 w-72 max-w-60 sm:max-w-none bg-panel-solid backdrop-blur-xl rounded-xl border border-border shadow-[0_4px_24px_rgba(0,0,0,0.4)] p-4 animate-[fadeScaleIn_0.15s_ease-out]"
         >
           <div className="text-[10px] text-text-tertiary uppercase tracking-wider mb-3">
             Dataset Comparison
