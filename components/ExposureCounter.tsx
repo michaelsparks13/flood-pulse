@@ -6,6 +6,7 @@ import type { GlobalSummary } from "@/lib/types";
 interface ExposureCounterProps {
   summary: GlobalSummary | null;
   year: number;
+  compact?: boolean;
 }
 
 function formatLargeNumber(n: number): string {
@@ -25,7 +26,7 @@ function formatFullNumber(n: number): string {
   return n.toLocaleString("en-US", { maximumFractionDigits: 0 });
 }
 
-export default function ExposureCounter({ summary, year }: ExposureCounterProps) {
+export default function ExposureCounter({ summary, year, compact = false }: ExposureCounterProps) {
   const [displayValue, setDisplayValue] = useState(0);
   const [countriesCount, setCountriesCount] = useState(0);
   const [hexesCount, setHexesCount] = useState(0);
@@ -103,27 +104,30 @@ export default function ExposureCounter({ summary, year }: ExposureCounterProps)
       <div className="counter-glow font-(--font-mono) text-4xl sm:text-5xl font-bold text-accent-bright leading-none mb-2">
         {formatLargeNumber(displayValue)}
       </div>
-      <div className="text-text-secondary text-sm mb-4">
+      <div className={`text-text-secondary text-sm ${compact ? "mb-0" : "mb-4"} sm:mb-4`}>
         people in flood-affected areas in{" "}
         <span className="font-semibold text-text-primary">{partialLabel}</span>
       </div>
-      <div className="flex gap-6 text-xs text-text-tertiary">
-        <div>
-          <span className="font-(--font-mono) text-text-secondary text-sm">
-            {countriesCount}
-          </span>{" "}
-          countries
+      {/* Secondary stats — hidden on mobile when compact, always visible on desktop */}
+      <div className={`${compact ? "hidden" : "block"} sm:block`}>
+        <div className="flex gap-6 text-xs text-text-tertiary">
+          <div>
+            <span className="font-(--font-mono) text-text-secondary text-sm">
+              {countriesCount}
+            </span>{" "}
+            countries
+          </div>
+          <div>
+            <span className="font-(--font-mono) text-text-secondary text-sm">
+              {formatLargeNumber(hexesCount * 253)}
+            </span>{" "}
+            km² affected
+          </div>
         </div>
-        <div>
-          <span className="font-(--font-mono) text-text-secondary text-sm">
-            {formatLargeNumber(hexesCount * 253)}
-          </span>{" "}
-          km² affected
+        <div className="mt-2 text-[10px] text-text-tertiary/60 leading-relaxed max-w-70">
+          {formatFullNumber(displayValue)} people lived in areas that experienced
+          flooding in {partialLabel}
         </div>
-      </div>
-      <div className="mt-2 text-[10px] text-text-tertiary/60 leading-relaxed max-w-70">
-        {formatFullNumber(displayValue)} people lived in areas that experienced
-        flooding in {partialLabel}
       </div>
     </div>
   );

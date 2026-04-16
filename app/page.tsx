@@ -26,6 +26,7 @@ export default function Home() {
   const [satellite, setSatellite] = useState(false);
   const [hexOpacity, setHexOpacity] = useState(0.9);
   const [mapMode, setMapMode] = useState<MapMode>("exposure");
+  const [infoExpanded, setInfoExpanded] = useState(false);
 
   // Living Globe state
   const [revealStarted, setRevealStarted] = useState(false);
@@ -211,16 +212,43 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Top-left: counter + title */}
-      <div data-testid="info-panel" className="absolute top-14 left-5 sm:top-8 sm:left-8 z-10 max-w-[calc(100vw-2.5rem)] sm:max-w-sm bg-panel/80 backdrop-blur-xl rounded-2xl border border-border shadow-[0_4px_24px_rgba(0,0,0,0.3)] p-5 sm:p-6">
+      {/* Top-left: counter + title — collapsible on mobile */}
+      <div data-testid="info-panel" className="absolute top-14 left-5 sm:top-8 sm:left-8 z-10 max-w-[calc(100vw-2.5rem)] sm:max-w-sm bg-panel/80 backdrop-blur-xl rounded-2xl border border-border shadow-[0_4px_24px_rgba(0,0,0,0.3)] p-4 sm:p-6">
         <h1 className="text-text-primary text-xl font-semibold mb-1 tracking-tight">
           FloodPulse
         </h1>
-        <p className="text-text-tertiary text-xs mb-5">
+        <p className="text-text-tertiary text-xs mb-3 sm:mb-5">
           Global flood exposure from 2.6M news-derived events
         </p>
-        <ExposureCounter summary={summary} year={year} />
-        <FrequencyChart summary={summary} />
+        <ExposureCounter summary={summary} year={year} compact={!infoExpanded} />
+
+        {/* FrequencyChart — hidden on mobile when collapsed, always visible on desktop */}
+        <div className={`${infoExpanded ? "block" : "hidden"} sm:block`}>
+          <FrequencyChart summary={summary} />
+        </div>
+
+        {/* Mobile expand/collapse toggle */}
+        <button
+          onClick={() => setInfoExpanded((v) => !v)}
+          className="sm:hidden flex items-center gap-1 mt-3 text-[11px] text-text-tertiary
+                     hover:text-text-secondary transition-colors cursor-pointer"
+          aria-expanded={infoExpanded}
+        >
+          <span>{infoExpanded ? "Show less" : "Show more"}</span>
+          <svg
+            width="12"
+            height="12"
+            viewBox="0 0 12 12"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className={`transition-transform duration-200 ${infoExpanded ? "rotate-180" : ""}`}
+          >
+            <path d="M3 4.5L6 7.5L9 4.5" />
+          </svg>
+        </button>
       </div>
 
       {/* Top-right: compare + layers + methodology */}
