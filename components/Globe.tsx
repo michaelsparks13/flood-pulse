@@ -45,6 +45,7 @@ interface GlobeProps {
   hexOpacity?: number;
   onBasemapReady?: () => void;
   onDataReady?: () => void;
+  onRevealStart?: () => void;
 }
 
 export default function Globe({
@@ -56,12 +57,14 @@ export default function Globe({
   hexOpacity = 0.9,
   onBasemapReady,
   onDataReady,
+  onRevealStart,
 }: GlobeProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const popupRef = useRef<maplibregl.Popup | null>(null);
   const overlayRef = useRef<MapboxOverlay | null>(null);
   const hexDataRef = useRef<HexDatum[] | null>(null);
+  const flyInDoneRef = useRef(false);
   const [loaded, setLoaded] = useState(false);
   const [dataLoaded, setDataLoaded] = useState(false);
 
@@ -156,7 +159,8 @@ export default function Globe({
         container,
         style,
         center: [20, 15],
-        zoom: 1.8,
+        zoom: 0.8,
+        pitch: 20,
         maxZoom: 6,
         attributionControl: false,
       });
@@ -292,6 +296,26 @@ export default function Globe({
       },
     });
 
+    const triggerReveal = () => {
+      if (flyInDoneRef.current) return;
+      flyInDoneRef.current = true;
+      onRevealStart?.();
+      const reducedMotion =
+        typeof window !== "undefined" &&
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      if (!reducedMotion) {
+        map.flyTo({
+          center: [20, 15],
+          zoom: 1.8,
+          pitch: 0,
+          duration: 2800,
+          easing: (t: number) => 1 - Math.pow(1 - t, 4), // easeOutQuart
+        });
+      } else {
+        map.jumpTo({ center: [20, 15], zoom: 1.8, pitch: 0 });
+      }
+    };
+
     if (!overlayRef.current) {
       try {
         const overlay = new MapboxOverlay({
@@ -302,6 +326,7 @@ export default function Globe({
         overlayRef.current = overlay;
         console.log("[FloodPulse] deck.gl overlay added (interleaved)");
         onDataReady?.();
+        triggerReveal();
       } catch (err) {
         console.error("[FloodPulse] Interleaved mode failed, trying overlaid:", err);
         // Fallback to non-interleaved (overlaid canvas)
@@ -314,6 +339,7 @@ export default function Globe({
           overlayRef.current = overlay;
           console.log("[FloodPulse] deck.gl overlay added (overlaid fallback)");
           onDataReady?.();
+          triggerReveal();
         } catch (err2) {
           console.error("[FloodPulse] Overlaid mode also failed:", err2);
         }

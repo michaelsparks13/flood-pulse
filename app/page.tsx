@@ -1,21 +1,22 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import ExposureCounter from "@/components/ExposureCounter";
 import FrequencyChart from "@/components/FrequencyChart";
 import TimelineSlider from "@/components/TimelineSlider";
 import MethodologyDrawer from "@/components/MethodologyDrawer";
 import LayersPanel from "@/components/LayersPanel";
 import ComparisonPopover from "@/components/ComparisonPopover";
+import InteractionHint from "@/components/InteractionHint";
 import type { GlobalSummary, MapMode } from "@/lib/types";
 
 // Load Globe client-side only (MapLibre needs DOM)
 const Globe = dynamic(() => import("@/components/Globe"), { ssr: false });
 
 export default function Home() {
-  const [year, setYear] = useState(2000);
-  const [playing, setPlaying] = useState(true);
+  const [year, setYear] = useState(2026);
+  const [playing, setPlaying] = useState(false);
   const [summary, setSummary] = useState<GlobalSummary | null>(null);
   const [methodologyOpen, setMethodologyOpen] = useState(false);
   const [basemapReady, setBasemapReady] = useState(false);
@@ -26,6 +27,16 @@ export default function Home() {
   const [hexOpacity, setHexOpacity] = useState(0.9);
   const [mapMode, setMapMode] = useState<MapMode>("exposure");
 
+  // Living Globe state
+  const [revealStarted, setRevealStarted] = useState(false);
+  const [effectiveOpacity, setEffectiveOpacity] = useState(0);
+  const [hintVisible, setHintVisible] = useState(false);
+  const [cursorPos, setCursorPos] = useState<{ x: number; y: number } | null>(null);
+  const prefersReducedMotion = useRef(false);
+  const revealComplete = useRef(false);
+  const cursorRafRef = useRef<number | null>(null);
+  const pendingCursor = useRef<{ x: number; y: number } | null>(null);
+
   // Load global summary data
   useEffect(() => {
     fetch("/data/global_summary.json")
@@ -34,12 +45,89 @@ export default function Home() {
       .catch(() => {});
   }, []);
 
+  // Detect reduced motion preference
+  useEffect(() => {
+    prefersReducedMotion.current = window.matchMedia(
+      "(prefers-reduced-motion: reduce)"
+    ).matches;
+    if (prefersReducedMotion.current) {
+      setEffectiveOpacity(hexOpacity);
+      revealComplete.current = true;
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Cinematic opacity reveal — animate 0 → hexOpacity over 2s
+  useEffect(() => {
+    if (!revealStarted || prefersReducedMotion.current) {
+      if (revealStarted && prefersReducedMotion.current) {
+        setEffectiveOpacity(hexOpacity);
+        revealComplete.current = true;
+        setHintVisible(true);
+      }
+      return;
+    }
+
+    const duration = 2800;
+    const target = hexOpacity;
+    const start = performance.now();
+    let raf: number;
+
+    const animate = (now: number) => {
+      const elapsed = now - start;
+      const t = Math.min(elapsed / duration, 1);
+      // easeOutCubic
+      const eased = 1 - Math.pow(1 - t, 3);
+      setEffectiveOpacity(eased * target);
+
+      if (t < 1) {
+        raf = requestAnimationFrame(animate);
+      } else {
+        revealComplete.current = true;
+        // Show interaction hint after a brief pause
+        setTimeout(() => setHintVisible(true), 800);
+      }
+    };
+
+    raf = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(raf);
+  }, [revealStarted]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Sync user opacity changes (from LayersPanel) after reveal completes
+  useEffect(() => {
+    if (revealComplete.current) {
+      setEffectiveOpacity(hexOpacity);
+    }
+  }, [hexOpacity]);
+
+  // Throttled cursor tracking for cursor glow (~30fps)
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    pendingCursor.current = { x: e.clientX, y: e.clientY };
+    if (cursorRafRef.current === null) {
+      cursorRafRef.current = requestAnimationFrame(() => {
+        setCursorPos(pendingCursor.current);
+        cursorRafRef.current = null;
+      });
+    }
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    if (cursorRafRef.current !== null) {
+      cancelAnimationFrame(cursorRafRef.current);
+      cursorRafRef.current = null;
+    }
+    setCursorPos(null);
+  }, []);
+
   const handleBasemapReady = useCallback(() => {
     setBasemapReady(true);
   }, []);
 
   const handleDataReady = useCallback(() => {
     setDataReady(true);
+  }, []);
+
+  const handleRevealStart = useCallback(() => {
+    setRevealStarted(true);
   }, []);
 
   const handleYearChange = useCallback((y: number) => {
@@ -51,7 +139,11 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="relative w-screen h-screen overflow-hidden bg-bg">
+    <div
+      className="relative w-screen h-screen overflow-hidden bg-bg"
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+    >
       {/* Globe fills the viewport */}
       <Globe
         year={year}
@@ -59,10 +151,34 @@ export default function Home() {
         showBoundaries={showBoundaries}
         showLabels={showLabels}
         satellite={satellite}
-        hexOpacity={hexOpacity}
+        hexOpacity={effectiveOpacity}
         onBasemapReady={handleBasemapReady}
         onDataReady={handleDataReady}
+        onRevealStart={handleRevealStart}
       />
+
+      {/* Atmospheric rim glow */}
+      <div className="atmosphere-glow absolute inset-0 z-1 pointer-events-none" />
+
+      {/* Cursor-reactive glow (desktop only) */}
+      {cursorPos && (
+        <div
+          className="absolute z-2 pointer-events-none rounded-full"
+          style={{
+            left: cursorPos.x - 150,
+            top: cursorPos.y - 150,
+            width: 300,
+            height: 300,
+            background:
+              "radial-gradient(circle, rgba(252,255,164,0.06) 0%, transparent 70%)",
+          }}
+        />
+      )}
+
+      {/* Interaction hint — auto-dismisses on first touch or after 8s */}
+      {hintVisible && (
+        <InteractionHint onDismiss={() => setHintVisible(false)} />
+      )}
 
       {/* Loading indicator — fades in after globe renders, fades out when hex data arrives */}
       <div

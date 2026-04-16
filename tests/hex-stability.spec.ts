@@ -96,9 +96,8 @@ async function stopRotationByInteraction(page: Page) {
 }
 
 /**
- * Pause the timeline auto-play by clicking the play/pause button.
- * Auto-play is on by default in production — stability tests need to pause it
- * to get a static frame for comparison.
+ * Ensure the timeline is paused. Timeline starts paused by default,
+ * but this helper guarantees it for stability tests.
  */
 async function pauseTimeline(page: Page) {
   const pauseBtn = page.getByRole("button", { name: /pause/i });
@@ -378,14 +377,13 @@ test.describe("Default UI state", () => {
     ).toBeGreaterThan(0);
   });
 
-  test("timeline is auto-playing on initial load", async ({ page }) => {
+  test("timeline is paused on initial load", async ({ page }) => {
     await page.goto("/");
     await waitForHexesRendered(page);
 
-    // Read the year displayed in the timeline, wait, and check it advanced.
+    // Read the year displayed in the timeline, wait, and check it did NOT advance.
     const readYear = () =>
       page.evaluate(() => {
-        // The year is shown prominently in the timeline
         const yearEl = Array.from(document.querySelectorAll("span")).find(
           (el) => /^20\d\d$/.test(el.textContent?.trim() ?? "")
         );
@@ -400,7 +398,7 @@ test.describe("Default UI state", () => {
     expect(after, "year should render").not.toBeNull();
     expect(
       after,
-      `Timeline should be auto-playing: year went from ${before} to ${after}`
-    ).not.toBe(before);
+      `Timeline should be paused: year stayed at ${before} but changed to ${after}`
+    ).toBe(before);
   });
 });
