@@ -14,13 +14,13 @@ import type { GlobalSummary, MapMode } from "@/lib/types";
 const Globe = dynamic(() => import("@/components/Globe"), { ssr: false });
 
 export default function Home() {
-  const [year, setYear] = useState(2026);
-  const [playing, setPlaying] = useState(false);
+  const [year, setYear] = useState(2000);
+  const [playing, setPlaying] = useState(true);
   const [summary, setSummary] = useState<GlobalSummary | null>(null);
   const [methodologyOpen, setMethodologyOpen] = useState(false);
   const [basemapReady, setBasemapReady] = useState(false);
   const [dataReady, setDataReady] = useState(false);
-  const [showBoundaries, setShowBoundaries] = useState(false);
+  const [showBoundaries, setShowBoundaries] = useState(true);
   const [showLabels, setShowLabels] = useState(false);
   const [satellite, setSatellite] = useState(false);
   const [hexOpacity, setHexOpacity] = useState(0.9);

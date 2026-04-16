@@ -13,6 +13,8 @@ interface TimelineSliderProps {
 
 const MIN_YEAR = 2000;
 const MAX_YEAR = 2026;
+const PLAY_INTERVAL_MS = 600;
+const LOOP_PAUSE_MS = 1400; // brief pause at the end before looping back
 
 export default function TimelineSlider({
   year,
@@ -21,28 +23,21 @@ export default function TimelineSlider({
   onPlayToggle,
   summary,
 }: TimelineSliderProps) {
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Auto-advance when playing, stop at end
+  // Auto-advance when playing; loop back to MIN_YEAR on reaching MAX_YEAR
+  // (with a brief pause at the final frame for visual breathing room).
   useEffect(() => {
-    if (playing) {
-      if (year >= MAX_YEAR) {
-        onYearChange(MIN_YEAR);
-        return;
-      }
-      intervalRef.current = setInterval(() => {
-        if (year + 1 >= MAX_YEAR) {
-          onYearChange(MAX_YEAR);
-          onPlayToggle();
-          return;
-        }
-        onYearChange(year + 1);
-      }, 1500);
-    }
+    if (!playing) return;
+    const delay = year >= MAX_YEAR ? LOOP_PAUSE_MS : PLAY_INTERVAL_MS;
+    const nextYear = year >= MAX_YEAR ? MIN_YEAR : year + 1;
+    intervalRef.current = setTimeout(() => {
+      onYearChange(nextYear);
+    }, delay);
     return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (intervalRef.current) clearTimeout(intervalRef.current);
     };
-  }, [playing, year, onYearChange, onPlayToggle]);
+  }, [playing, year, onYearChange]);
 
   // Sparkline of raw record counts
   const maxRaw = summary

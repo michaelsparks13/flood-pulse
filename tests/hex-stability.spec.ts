@@ -95,13 +95,29 @@ async function stopRotationByInteraction(page: Page) {
   await page.waitForTimeout(500);
 }
 
+/**
+ * Pause the timeline auto-play by clicking the play/pause button.
+ * Auto-play is on by default in production — stability tests need to pause it
+ * to get a static frame for comparison.
+ */
+async function pauseTimeline(page: Page) {
+  const pauseBtn = page.getByRole("button", { name: /pause/i });
+  if (await pauseBtn.isVisible().catch(() => false)) {
+    await pauseBtn.click();
+  }
+  await page.waitForTimeout(300);
+}
+
 test.describe("Hex layer visual stability", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
     await waitForHexesRendered(page);
   });
 
-  test("hexes are pixel-stable when globe is stationary", async ({ page }) => {
+  test("hexes are pixel-stable when globe is stationary and timeline is paused", async ({
+    page,
+  }) => {
+    await pauseTimeline(page);
     await stopRotationByInteraction(page);
 
     // Capture 5 frames with small waits — all should be identical
@@ -120,6 +136,74 @@ test.describe("Hex layer visual stability", () => {
     }
   });
 
+  test("timeline auto-play does not cause sub-pixel flicker between year ticks", async ({
+    page,
+  }) => {
+    // Default behavior: timeline is auto-playing. Capture many frames INSIDE a
+    // single page.evaluate to avoid IPC overhead, then pull classified stats back.
+    const stats = await page.evaluate(async () => {
+      const canvas = document.querySelector(
+        ".maplibregl-canvas"
+      ) as HTMLCanvasElement;
+      const off = document.createElement("canvas");
+      off.width = canvas.width;
+      off.height = canvas.height;
+      const ctx = off.getContext("2d")!;
+      const cx = Math.floor(canvas.width / 2) - 200;
+      const cy = Math.floor(canvas.height / 2) - 200;
+
+      const grab = () => {
+        ctx.drawImage(canvas, 0, 0);
+        return ctx.getImageData(cx, cy, 400, 400).data;
+      };
+
+      // Capture 25 frames over ~800ms to catch ≥1 year tick
+      const frames: Uint8ClampedArray[] = [];
+      for (let i = 0; i < 25; i++) {
+        frames.push(grab());
+        await new Promise<void>((r) =>
+          requestAnimationFrame(() => requestAnimationFrame(() => r()))
+        );
+      }
+
+      // Per-pair classification
+      let flickerFrames = 0;
+      let totalPairs = 0;
+      let worstShimmer = 0;
+      for (let i = 1; i < frames.length; i++) {
+        const a = frames[i - 1];
+        const b = frames[i];
+        let stable = 0;
+        let noise = 0;
+        let edge = 0;
+        for (let j = 0; j < a.length; j += 4) {
+          const d =
+            Math.abs(a[j] - b[j]) +
+            Math.abs(a[j + 1] - b[j + 1]) +
+            Math.abs(a[j + 2] - b[j + 2]);
+          if (d === 0) stable++;
+          else if (d < 30) noise++;
+          else edge++;
+        }
+        const total = stable + noise + edge;
+        const noisePct = (noise / total) * 100;
+        const edgePct = (edge / total) * 100;
+        const isYearTick = edgePct > 2;
+        const isShimmer = !isYearTick && noisePct > 5;
+        if (isShimmer) flickerFrames++;
+        if (noisePct > worstShimmer && !isYearTick) worstShimmer = noisePct;
+        totalPairs++;
+      }
+
+      return { flickerFrames, totalPairs, worstShimmer };
+    });
+
+    expect(
+      stats.flickerFrames,
+      `Detected ${stats.flickerFrames}/${stats.totalPairs} frames with sub-pixel shimmer during auto-play (worst non-tick shimmer: ${stats.worstShimmer.toFixed(1)}%)`
+    ).toBe(0);
+  });
+
   // Note: rotation-during-playback tests don't work in headless Playwright
   // because requestAnimationFrame is throttled when the browser lacks focus,
   // so auto-rotation doesn't actually render new frames. We therefore verify
@@ -129,6 +213,7 @@ test.describe("Hex layer visual stability", () => {
   test("ocean/empty regions have no flicker (basemap is stable)", async ({
     page,
   }) => {
+    await pauseTimeline(page);
     // Sample a region known to have no hexes (top-left quadrant)
     const capture = async () =>
       page.evaluate(() => {
@@ -266,5 +351,56 @@ test.describe("Runtime: map has no auto-motion on initial load", () => {
       isMoving,
       "map.isMoving() is true on load — auto-rotation is still happening."
     ).toBe(false);
+  });
+});
+
+test.describe("Default UI state", () => {
+  test("country borders are visible by default", async ({ page }) => {
+    await page.goto("/");
+    await waitForHexesRendered(page);
+
+    // Check that the country-boundaries layer exists and has non-zero opacity
+    const boundariesOpacity = await page.evaluate(() => {
+      const w = window as unknown as {
+        __map: {
+          getLayer: (id: string) => unknown;
+          getPaintProperty: (id: string, prop: string) => number;
+        };
+      };
+      const layer = w.__map.getLayer("country-boundaries");
+      if (!layer) return null;
+      return w.__map.getPaintProperty("country-boundaries", "line-opacity");
+    });
+
+    expect(
+      boundariesOpacity,
+      "country borders should be visible by default"
+    ).toBeGreaterThan(0);
+  });
+
+  test("timeline is auto-playing on initial load", async ({ page }) => {
+    await page.goto("/");
+    await waitForHexesRendered(page);
+
+    // Read the year displayed in the timeline, wait, and check it advanced.
+    const readYear = () =>
+      page.evaluate(() => {
+        // The year is shown prominently in the timeline
+        const yearEl = Array.from(document.querySelectorAll("span")).find(
+          (el) => /^20\d\d$/.test(el.textContent?.trim() ?? "")
+        );
+        return yearEl ? parseInt(yearEl.textContent!.trim()) : null;
+      });
+
+    const before = await readYear();
+    await page.waitForTimeout(1500);
+    const after = await readYear();
+
+    expect(before, "year should render").not.toBeNull();
+    expect(after, "year should render").not.toBeNull();
+    expect(
+      after,
+      `Timeline should be auto-playing: year went from ${before} to ${after}`
+    ).not.toBe(before);
   });
 });
