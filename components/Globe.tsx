@@ -162,6 +162,7 @@ export default function Globe({
         zoom: 0.8,
         pitch: 20,
         maxZoom: 6,
+        renderWorldCopies: false,
         attributionControl: false,
       });
 
