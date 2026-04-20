@@ -19,6 +19,29 @@ test("scrolling advances story acts", async ({ page }) => {
   expect(["counter", "where", "hex"]).toContain(activeId);
 });
 
+test("Act 2 counter shows year advancing as user scrolls", async ({ page }) => {
+  await page.goto("/");
+  await page.waitForFunction(
+    () => !!(window as unknown as { __map?: { loaded: () => boolean } }).__map,
+    { timeout: 10_000 }
+  );
+  await page.waitForTimeout(1500);
+
+  // Scroll into Act 2 (act 1 is ~1.2vh tall; act 2 starts around viewport height)
+  await page.evaluate(() => window.scrollTo({ top: 1200, behavior: "instant" }));
+  await page.waitForTimeout(400);
+
+  // Counter should be visible and show a year in the 2000-2026 range
+  const counterText = await page.locator('text=Population exposed').first().textContent();
+  expect(counterText).toMatch(/Population exposed\s*—\s*(20[0-2]\d)/);
+
+  // Scroll deeper into Act 2 — year should advance
+  await page.evaluate(() => window.scrollTo({ top: 2000, behavior: "instant" }));
+  await page.waitForTimeout(400);
+  const laterText = await page.locator('text=Population exposed').first().textContent();
+  expect(laterText).toMatch(/Population exposed\s*—\s*(20[0-2]\d)/);
+});
+
 test("Act 1 shows hexes at year 2000", async ({ page }) => {
   await page.goto("/");
   await page.waitForFunction(

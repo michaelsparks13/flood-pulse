@@ -2,12 +2,15 @@
 
 import dynamic from "next/dynamic";
 import StoryContainer from "@/components/story/StoryContainer";
+import StoryCounter from "@/components/story/StoryCounter";
 import { useActDataState } from "@/components/story/useActDataState";
 
 const Globe = dynamic(() => import("@/components/Globe"), { ssr: false });
 
 export default function Home() {
-  const { dataState, handleActChange } = useActDataState();
+  const { dataState, summary, activeActId, handleActChange } = useActDataState();
+  const counterVisible = activeActId !== "breath";
+
   return (
     <>
       <Globe
@@ -18,6 +21,7 @@ export default function Home() {
         satellite={false}
         hexOpacity={dataState.hexOpacity}
       />
+      <StoryCounter summary={summary} year={dataState.year} visible={counterVisible} />
       <StoryContainer onActChange={handleActChange} />
     </>
   );
