@@ -50,12 +50,6 @@ test("Act 2 counter shows year advancing as user scrolls", async ({ page }) => {
 });
 
 test("Act 3 flies to Bangladesh", async ({ page }) => {
-  // Use reduced-motion so the choreographer calls jumpTo (instant) instead of flyTo.
-  // flyTo with pitch changes on the globe projection triggers a MapLibre calcMatrices
-  // error that freezes the animation — reduced-motion avoids this entirely while still
-  // exercising the full act-enter → camera-update code path.
-  await page.emulateMedia({ reducedMotion: "reduce" });
-
   await page.goto("/");
   await page.waitForFunction(
     () => !!(window as unknown as { __map?: { loaded: () => boolean } }).__map,
@@ -63,12 +57,11 @@ test("Act 3 flies to Bangladesh", async ({ page }) => {
   );
   await page.waitForTimeout(1500);
 
-  // Scroll into Act 3. Each act is 1.2×100vh; at Playwright's 1280×720 default
-  // viewport that is 864 px/act. Act 3 ("where") spans 1728–2592 px; Act 4 starts
-  // triggering around scrollY ≈ 2160 px, so 1800 px lands safely in Act 3.
+  // Scroll into Act 3. Each act is 1.2×100vh; at Playwright's default viewport
+  // Act 3 ("where") spans ~1728–2592 px; 1800 lands safely inside it.
   await page.evaluate(() => window.scrollTo({ top: 1800, behavior: "instant" }));
-  // jumpTo is instantaneous; a short wait is enough for React state to settle.
-  await page.waitForTimeout(1000);
+  // Allow flyTo (center + zoom + bearing) to complete; pitch is pre-jumped.
+  await page.waitForTimeout(3500);
 
   const center = await page.evaluate(() => {
     const map = (window as unknown as { __map?: { getCenter: () => { lng: number; lat: number } } }).__map;
