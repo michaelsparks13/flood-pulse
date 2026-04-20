@@ -1,14 +1,22 @@
-import Link from "next/link";
+"use client";
+
+import dynamic from "next/dynamic";
+import StoryContainer from "@/components/story/StoryContainer";
+
+const Globe = dynamic(() => import("@/components/Globe"), { ssr: false });
 
 export default function Home() {
   return (
-    <main className="w-screen h-screen flex items-center justify-center bg-bg text-text-primary">
-      <div className="text-center">
-        <h1 className="text-2xl mb-4">FloodPulse</h1>
-        <Link href="/explore" className="underline text-text-secondary">
-          Open explorer →
-        </Link>
-      </div>
-    </main>
+    <>
+      <Globe
+        year={2026}
+        mapMode="exposure"
+        showBoundaries={true}
+        showLabels={false}
+        satellite={false}
+        hexOpacity={0.9}
+      />
+      <StoryContainer />
+    </>
   );
 }
