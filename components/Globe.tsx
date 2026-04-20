@@ -339,33 +339,15 @@ export default function Globe({
     };
 
     if (!overlayRef.current) {
-      try {
-        const overlay = new MapboxOverlay({
-          interleaved: true,
-          layers: [layer],
-        });
-        map.addControl(overlay as unknown as maplibregl.IControl);
-        overlayRef.current = overlay;
-        console.log("[FloodPulse] deck.gl overlay added (interleaved)");
-        onDataReady?.();
-        triggerReveal();
-      } catch (err) {
-        console.error("[FloodPulse] Interleaved mode failed, trying overlaid:", err);
-        // Fallback to non-interleaved (overlaid canvas)
-        try {
-          const overlay = new MapboxOverlay({
-            interleaved: false,
-            layers: [layer],
-          });
-          map.addControl(overlay as unknown as maplibregl.IControl);
-          overlayRef.current = overlay;
-          console.log("[FloodPulse] deck.gl overlay added (overlaid fallback)");
-          onDataReady?.();
-          triggerReveal();
-        } catch (err2) {
-          console.error("[FloodPulse] Overlaid mode also failed:", err2);
-        }
-      }
+      const overlay = new MapboxOverlay({
+        interleaved: false,
+        layers: [layer],
+      });
+      map.addControl(overlay as unknown as maplibregl.IControl);
+      overlayRef.current = overlay;
+      console.log("[FloodPulse] deck.gl overlay added (overlaid)");
+      onDataReady?.();
+      triggerReveal();
     } else {
       overlayRef.current.setProps({ layers: [layer] });
     }
