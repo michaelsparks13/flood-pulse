@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 
 test("globe renders hex layer without rectangular clipping at tilt", async ({ page }) => {
-  await page.goto("http://localhost:3000/explore");
+  await page.goto("/explore");
   // Wait for the cinematic reveal to complete
   await page.waitForFunction(
     () => !!(window as any).__map && (window as any).__map.loaded(),
