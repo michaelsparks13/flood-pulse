@@ -1,14 +1,17 @@
 "use client";
 
-import { createContext, useContext, useRef, useState, ReactNode } from "react";
+import { createContext, useContext, useRef, useState, useMemo, ReactNode } from "react";
 import type maplibregl from "maplibre-gl";
 import type { MapboxOverlay } from "@deck.gl/mapbox";
 import type { HexDatum } from "@/lib/types";
 
 interface GlobeContextValue {
-  mapRef: React.RefObject<maplibregl.Map | null>;
-  overlayRef: React.RefObject<MapboxOverlay | null>;
-  hexDataRef: React.RefObject<HexDatum[] | null>;
+  // mapRef, overlayRef, and hexDataRef are mutated directly by Globe.tsx
+  // (writing .current). MutableRefObject reflects that intent.
+  mapRef: React.MutableRefObject<maplibregl.Map | null>;
+  overlayRef: React.MutableRefObject<MapboxOverlay | null>;
+  hexDataRef: React.MutableRefObject<HexDatum[] | null>;
+  // containerRef is only read by Globe; it stays as RefObject.
   containerRef: React.RefObject<HTMLDivElement | null>;
   basemapReady: boolean;
   dataReady: boolean;
@@ -26,19 +29,24 @@ export function GlobeProvider({ children }: { children: ReactNode }) {
   const [basemapReady, setBasemapReady] = useState(false);
   const [dataReady, setDataReady] = useState(false);
 
+  // Memoize so consumers only re-render when basemapReady/dataReady change.
+  // Ref identities and state setters are stable, so they are safe to omit from deps.
+  const value = useMemo(
+    () => ({
+      mapRef,
+      overlayRef,
+      hexDataRef,
+      containerRef,
+      basemapReady,
+      dataReady,
+      setBasemapReady,
+      setDataReady,
+    }),
+    [basemapReady, dataReady]
+  );
+
   return (
-    <GlobeContext.Provider
-      value={{
-        mapRef,
-        overlayRef,
-        hexDataRef,
-        containerRef,
-        basemapReady,
-        dataReady,
-        setBasemapReady,
-        setDataReady,
-      }}
-    >
+    <GlobeContext.Provider value={value}>
       {/* Persistent globe host — positioned by route via CSS, never unmounted.
           MapLibre's stylesheet forces `.maplibregl-map { position: relative }`,
           which would collapse this host to zero height. Use inline styles so

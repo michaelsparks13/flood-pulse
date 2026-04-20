@@ -332,6 +332,14 @@ export default function Globe({
 
     const triggerReveal = () => {
       if (flyInDoneRef.current) return;
+      // Skip reveal if the map has already been zoomed in by a previous route mount.
+      // flyInDoneRef is local to this component and resets on remount; the camera
+      // state is the ground truth.
+      if (map.getZoom() > 1.2) {
+        flyInDoneRef.current = true;
+        onRevealStart?.();
+        return;
+      }
       flyInDoneRef.current = true;
       onRevealStart?.();
       const reducedMotion =
