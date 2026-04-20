@@ -21,6 +21,7 @@ export default function Home() {
         showLabels={false}
         satellite={false}
         hexOpacity={dataState.hexOpacity}
+        highlightHex={dataState.highlightHex}
       />
       <FogMask active={!!dataState.fogMask} />
       <StoryCounter summary={summary} year={dataState.year} visible={counterVisible} />

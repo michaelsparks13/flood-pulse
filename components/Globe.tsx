@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { MapboxOverlay } from "@deck.gl/mapbox";
@@ -44,6 +44,7 @@ interface GlobeProps {
   showLabels?: boolean;
   satellite?: boolean;
   hexOpacity?: number;
+  highlightHex?: string;
   onBasemapReady?: () => void;
   onDataReady?: () => void;
   onRevealStart?: () => void;
@@ -56,6 +57,7 @@ export default function Globe({
   showLabels = false,
   satellite = false,
   hexOpacity = 0.9,
+  highlightHex,
   onBasemapReady,
   onDataReady,
   onRevealStart,
@@ -72,6 +74,13 @@ export default function Globe({
   } = useGlobe();
   const popupRef = useRef<maplibregl.Popup | null>(null);
   const flyInDoneRef = useRef(false);
+
+  const [pulseTick, setPulseTick] = useState(0);
+  useEffect(() => {
+    if (!highlightHex) return;
+    const id = setInterval(() => setPulseTick((t) => t + 1), 60);
+    return () => clearInterval(id);
+  }, [highlightHex]);
 
   // Fetch compact hex data once on mount (shared across route transitions)
   useEffect(() => {
@@ -358,10 +367,34 @@ export default function Globe({
       }
     };
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const layers: any[] = [layer];
+    if (highlightHex) {
+      const phase = (performance.now() / 1000) % 1.0;
+      const pulseAlpha = 120 + Math.round(Math.sin(phase * 2 * Math.PI) * 80);
+      layers.push(
+        new (H3HexagonLayer as any)({
+          id: "h3-pulse",
+          data: [{ h: highlightHex }],
+          getHexagon: (d: { h: string }) => d.h,
+          getFillColor: [252, 255, 164, pulseAlpha],
+          filled: true,
+          stroked: true,
+          getLineColor: [252, 255, 164, 230],
+          getLineWidth: 2,
+          lineWidthUnits: "pixels",
+          pickable: false,
+          updateTriggers: {
+            getFillColor: [phase],
+          },
+        })
+      );
+    }
+
     if (!overlayRef.current) {
       const overlay = new MapboxOverlay({
         interleaved: false,
-        layers: [layer],
+        layers,
       });
       map.addControl(overlay as unknown as maplibregl.IControl);
       overlayRef.current = overlay;
@@ -369,12 +402,12 @@ export default function Globe({
       onDataReady?.();
       triggerReveal();
     } else {
-      overlayRef.current.setProps({ layers: [layer] });
+      overlayRef.current.setProps({ layers });
       // Overlay already existed (navigated back to this route). Fire the
       // readiness callback so consuming pages can unblock their UI.
       onDataReady?.();
     }
-  }, [dataReady, year, mapMode, hexOpacity, basemapReady]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [dataReady, year, mapMode, hexOpacity, basemapReady, highlightHex, pulseTick]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Toggle country boundaries
   useEffect(() => {

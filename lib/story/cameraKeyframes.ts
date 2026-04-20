@@ -36,9 +36,10 @@ export const BANGLADESH_COUNTRY: CameraKeyframe = {
   duration: "auto",
 };
 
-// Act 4 — tight zoom on a single Khulna-area hex
+// Act 4 — tight zoom on a single Dhaka-area hex (853cf177fffffff)
+// centroid derived from h3-js cellToLatLng at implementation time
 export const KHULNA_HEX: CameraKeyframe = {
-  center: [89.56, 22.84],
+  center: [90.440, 23.663],
   zoom: 5.5,
   pitch: 45,
   bearing: 0,

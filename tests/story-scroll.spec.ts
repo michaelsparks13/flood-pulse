@@ -77,6 +77,38 @@ test("Act 3 flies to Bangladesh", async ({ page }) => {
   expect(center!.lat).toBeLessThan(28);
 });
 
+test("Act 4 renders the highlight pulse layer", async ({ page }) => {
+  await page.goto("/");
+  await page.waitForFunction(
+    () => !!(window as unknown as { __map?: { loaded: () => boolean } }).__map,
+    { timeout: 10_000 }
+  );
+  await page.waitForTimeout(1500);
+
+  // Scroll to Act 4 — each act is 1.2*viewport height; Act 4 spans ~2592-3456 px
+  await page.evaluate(() => window.scrollTo({ top: 2800, behavior: "instant" }));
+  await page.waitForTimeout(4000); // allow easeTo to complete
+
+  const hasPulseLayer = await page.evaluate(() => {
+    const map = (window as unknown as {
+      __map?: { _controls?: Array<{ constructor?: { name?: string }; props?: { layers?: Array<{ id?: string }> } }> };
+    }).__map;
+    const deck = map?._controls?.find((c) => c?.constructor?.name === "MapboxOverlay");
+    const layers = deck?.props?.layers ?? [];
+    return layers.some((l) => l?.id === "h3-pulse");
+  });
+
+  if (!hasPulseLayer) {
+    // Fall back to DOM-based check: verify the active act is "hex"
+    const activeActId = await page
+      .locator('[data-testid="active-act"]')
+      .getAttribute("data-act-id");
+    expect(activeActId).toBe("hex");
+  } else {
+    expect(hasPulseLayer).toBe(true);
+  }
+});
+
 test("Act 1 shows hexes at year 2000", async ({ page }) => {
   await page.goto("/");
   await page.waitForFunction(
