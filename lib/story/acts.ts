@@ -39,7 +39,14 @@ export const ACTS: ActDefinition[] = [
     ariaTitle: "Act 4: One Hex, One Story",
     copy: "This single hexagon. 360,000 people. Flooded in 22 of the last 26 years.",
     camera: KHULNA_HEX,
-    data: { year: 2026, mapMode: "exposure", hexOpacity: 0.9, highlightHex: "851e3597fffffff" },
+    data: {
+      year: 2026,
+      mapMode: "exposure",
+      hexOpacity: 0.9,
+      // TODO(Task 9): replace with the actual top-exposure Khulna hex
+      // queried from public/data/hex_compact.json. This is a placeholder.
+      highlightHex: "851e3597fffffff",
+    },
   },
   {
     id: "compare",

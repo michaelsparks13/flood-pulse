@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useCallback, useRef } from "react";
 import { useGlobe } from "@/context/GlobeContext";
 import type { CameraKeyframe } from "@/lib/story/storyTypes";
 
@@ -12,7 +12,7 @@ export function useCameraChoreographer() {
   const { mapRef } = useGlobe();
   const lastKeyframeRef = useRef<CameraKeyframe | null>(null);
 
-  const flyTo = (kf: CameraKeyframe) => {
+  const flyTo = useCallback((kf: CameraKeyframe) => {
     const map = mapRef.current;
     if (!map) return;
     lastKeyframeRef.current = kf;
@@ -32,7 +32,7 @@ export function useCameraChoreographer() {
       essential: true,
       easing: kf.easing,
     });
-  };
+  }, [mapRef]);
 
   return { flyTo, lastKeyframeRef };
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import scrollama from "scrollama";
 import { Act } from "./Act";
 import { ACTS } from "@/lib/story/acts";
@@ -11,7 +11,6 @@ interface StoryContainerProps {
 }
 
 export default function StoryContainer({ onActChange }: StoryContainerProps) {
-  const scrollerRef = useRef<HTMLDivElement>(null);
   const [activeAct, setActiveAct] = useState<string>(ACTS[0].id);
   const { flyTo } = useCameraChoreographer();
 
@@ -44,7 +43,7 @@ export default function StoryContainer({ onActChange }: StoryContainerProps) {
   }, [flyTo, onActChange]);
 
   return (
-    <div ref={scrollerRef} className="relative z-10">
+    <div className="relative z-10">
       {ACTS.map((act) => (
         <Act key={act.id} id={act.id} ariaTitle={act.ariaTitle} heightVh={1.2}>
           {Array.isArray(act.copy) ? (
