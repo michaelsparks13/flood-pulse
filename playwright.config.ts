@@ -21,6 +21,16 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"] },
     },
     {
+      name: "desktop-firefox",
+      testIgnore: "**/mobile/**",
+      use: { ...devices["Desktop Firefox"] },
+    },
+    {
+      name: "desktop-safari",
+      testIgnore: "**/mobile/**",
+      use: { ...devices["Desktop Safari"] },
+    },
+    {
       name: "mobile-iphone-se",
       testMatch: "**/mobile/*.spec.ts",
       use: { ...devices["iPhone SE"] },

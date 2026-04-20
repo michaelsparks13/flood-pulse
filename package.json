@@ -6,7 +6,13 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "playwright test",
+    "test:chrome": "playwright test --project=desktop",
+    "test:firefox": "playwright test --project=desktop-firefox",
+    "test:safari": "playwright test --project=desktop-safari",
+    "test:desktop": "playwright test --project=desktop --project=desktop-firefox --project=desktop-safari",
+    "test:mobile": "playwright test --project=mobile-iphone-se --project=mobile-iphone-14 --project=mobile-pixel-7"
   },
   "dependencies": {
     "@deck.gl/core": "^9.2.11",
