@@ -27,19 +27,26 @@ test("Act 2 counter shows year advancing as user scrolls", async ({ page }) => {
   );
   await page.waitForTimeout(1500);
 
-  // Scroll into Act 2 (act 1 is ~1.2vh tall; act 2 starts around viewport height)
+  // Scroll into Act 2
   await page.evaluate(() => window.scrollTo({ top: 1200, behavior: "instant" }));
-  await page.waitForTimeout(400);
+  await page.waitForTimeout(500);
 
-  // Counter should be visible and show a year in the 2000-2026 range
-  const counterText = await page.locator('text=Population exposed').first().textContent();
-  expect(counterText).toMatch(/Population exposed\s*—\s*(20[0-2]\d)/);
+  const earlyText = await page.locator('text=Population exposed').first().textContent();
+  const earlyMatch = earlyText?.match(/(20[0-2]\d)/);
+  expect(earlyMatch).not.toBeNull();
+  const earlyYear = parseInt(earlyMatch![1], 10);
+  expect(earlyYear).toBeGreaterThanOrEqual(2000);
+  expect(earlyYear).toBeLessThanOrEqual(2026);
 
-  // Scroll deeper into Act 2 — year should advance
+  // Scroll deeper into Act 2
   await page.evaluate(() => window.scrollTo({ top: 2000, behavior: "instant" }));
-  await page.waitForTimeout(400);
+  await page.waitForTimeout(500);
   const laterText = await page.locator('text=Population exposed').first().textContent();
-  expect(laterText).toMatch(/Population exposed\s*—\s*(20[0-2]\d)/);
+  const laterMatch = laterText?.match(/(20[0-2]\d)/);
+  expect(laterMatch).not.toBeNull();
+  const laterYear = parseInt(laterMatch![1], 10);
+  expect(laterYear).toBeGreaterThanOrEqual(earlyYear);
+  expect(laterYear).toBeLessThanOrEqual(2026);
 });
 
 test("Act 1 shows hexes at year 2000", async ({ page }) => {

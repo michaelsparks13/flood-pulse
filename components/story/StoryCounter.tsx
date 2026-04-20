@@ -21,12 +21,15 @@ export default function StoryCounter({ summary, year, visible }: Props) {
 
   return (
     <div
-      aria-live="polite"
       className={`fixed top-8 left-8 z-20 transition-opacity duration-500 pointer-events-none ${
         visible ? "opacity-100" : "opacity-0"
       }`}
+      aria-hidden={!visible}
     >
-      <div className="bg-panel/80 backdrop-blur-xl rounded-2xl border border-border p-5">
+      <div
+        className="bg-panel/80 backdrop-blur-xl rounded-2xl border border-border p-5"
+        aria-live={visible ? "polite" : "off"}
+      >
         <div className="text-[10px] tracking-widest uppercase text-text-tertiary mb-1">
           Population exposed — {year}
         </div>
