@@ -13,7 +13,7 @@ import { waitForAppReady, pauseTimeline } from "./fixtures";
 
 test.describe("Home page load & content visibility", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/explore");
     await waitForAppReady(page);
   });
 
@@ -63,7 +63,7 @@ test.describe("Home page load & content visibility", () => {
 
 test.describe("Timeline interaction", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/explore");
     await waitForAppReady(page);
   });
 
@@ -121,7 +121,7 @@ test.describe("Timeline interaction", () => {
 
 test.describe("Layers panel", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/explore");
     await waitForAppReady(page);
   });
 
@@ -164,7 +164,7 @@ test.describe("Layers panel", () => {
 
 test.describe("Methodology drawer", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/explore");
     await waitForAppReady(page);
   });
 
@@ -233,7 +233,7 @@ test.describe("Compare page navigation", () => {
 
 test.describe("ComparisonPopover", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/explore");
     await waitForAppReady(page);
   });
 
@@ -264,7 +264,7 @@ test.describe("ComparisonPopover", () => {
 
 test.describe("Globe touch interaction", () => {
   test("tapping a hex shows popup @known-issue:hover-only", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/explore");
     await waitForAppReady(page);
     await pauseTimeline(page);
 
@@ -303,7 +303,7 @@ test.describe("Globe touch interaction", () => {
 
 test.describe("Default timeline state", () => {
   test("timeline does NOT auto-play on load (starts paused at 2026)", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/explore");
     await waitForAppReady(page);
 
     // Year should start at 2026 (full dataset)

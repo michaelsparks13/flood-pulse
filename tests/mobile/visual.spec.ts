@@ -11,7 +11,7 @@ import { waitForAppReady, pauseTimeline, measureElement, getViewport } from "./f
 
 test.describe("Layout integrity", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/explore");
     await waitForAppReady(page);
     await pauseTimeline(page);
     // Give animations time to settle
@@ -79,7 +79,7 @@ test.describe("Layout integrity", () => {
 
 test.describe("Overlay stacking order", () => {
   test("modal renders above all other content", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/explore");
     await waitForAppReady(page);
 
     // Open methodology drawer
@@ -105,7 +105,7 @@ test.describe("Overlay stacking order", () => {
   });
 
   test("panels have z-10 above map", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/explore");
     await waitForAppReady(page);
 
     const panelZIndex = await page.evaluate(() => {
@@ -121,7 +121,7 @@ test.describe("Overlay stacking order", () => {
 
 test.describe("Screenshot baselines", () => {
   test("home page visual baseline", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/explore");
     await waitForAppReady(page);
     await pauseTimeline(page);
     // Extra wait for map tiles to load
@@ -146,7 +146,7 @@ test.describe("Screenshot baselines", () => {
   });
 
   test("methodology drawer visual baseline", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/explore");
     await waitForAppReady(page);
 
     await page.locator("button", { hasText: "Methodology" }).tap();
@@ -159,7 +159,7 @@ test.describe("Screenshot baselines", () => {
   });
 
   test("layers panel visual baseline", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/explore");
     await waitForAppReady(page);
 
     await page.locator('button[aria-label="Map layers"]').tap();
@@ -174,7 +174,7 @@ test.describe("Screenshot baselines", () => {
 
 test.describe("Dark theme contrast", () => {
   test("primary text has sufficient contrast on panel background", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/explore");
     await waitForAppReady(page);
 
     // Check the heading color against the panel background
@@ -222,7 +222,7 @@ test.describe("Dark theme contrast", () => {
   });
 
   test("tertiary text contrast check @known-issue:contrast", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/explore");
     await waitForAppReady(page);
 
     const ratio = await page.evaluate(() => {

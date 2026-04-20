@@ -109,7 +109,7 @@ async function pauseTimeline(page: Page) {
 
 test.describe("Hex layer visual stability", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/explore");
     await waitForHexesRendered(page);
   });
 
@@ -308,7 +308,7 @@ test.describe("Runtime: map has no auto-motion on initial load", () => {
   test("map.getCenter() does not drift over 2 seconds without interaction", async ({
     page,
   }) => {
-    await page.goto("/");
+    await page.goto("/explore");
     await waitForHexesRendered(page);
 
     // DO NOT interact. DO NOT stop rotation. Verify the map is idle.
@@ -338,7 +338,7 @@ test.describe("Runtime: map has no auto-motion on initial load", () => {
   });
 
   test("map.isMoving() is false on initial load", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/explore");
     await waitForHexesRendered(page);
 
     const isMoving = await page.evaluate(() => {
@@ -355,7 +355,7 @@ test.describe("Runtime: map has no auto-motion on initial load", () => {
 
 test.describe("Default UI state", () => {
   test("country borders are visible by default", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/explore");
     await waitForHexesRendered(page);
 
     // Check that the country-boundaries layer exists and has non-zero opacity
@@ -378,7 +378,7 @@ test.describe("Default UI state", () => {
   });
 
   test("timeline is paused on initial load", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/explore");
     await waitForHexesRendered(page);
 
     // Read the year displayed in the timeline, wait, and check it did NOT advance.

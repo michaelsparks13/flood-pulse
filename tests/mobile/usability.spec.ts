@@ -17,7 +17,7 @@ import {
 
 test.describe("Tap target sizes — WCAG 2.2 Level AA (24x24px minimum)", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/explore");
     await waitForAppReady(page);
   });
 
@@ -99,7 +99,7 @@ test.describe("Tap target sizes — WCAG 2.2 Level AA (24x24px minimum)", () => 
 
 test.describe("No horizontal overflow", () => {
   test("home page has no horizontal scroll", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/explore");
     await waitForAppReady(page);
     await assertNoHorizontalOverflow(page);
   });
@@ -114,7 +114,7 @@ test.describe("No horizontal overflow", () => {
 
 test.describe("Panel overlap detection", () => {
   test("top-left panel and top-right buttons do not overlap @known-issue:layout", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/explore");
     await waitForAppReady(page);
 
     const topLeftPanel = await measureElement(page, "[data-testid='info-panel']");
@@ -131,7 +131,7 @@ test.describe("Panel overlap detection", () => {
   });
 
   test("bottom timeline panel does not overlap top panels", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/explore");
     await waitForAppReady(page);
 
     const topLeftPanel = await measureElement(page, "[data-testid='info-panel']");
@@ -150,7 +150,7 @@ test.describe("Panel overlap detection", () => {
 
 test.describe("Popover viewport containment", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/explore");
     await waitForAppReady(page);
   });
 
@@ -192,7 +192,7 @@ test.describe("Popover viewport containment", () => {
 
 test.describe("Mode toggle accessibility on mobile", () => {
   test("exposure/frequency toggle is hidden on mobile (known gap)", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/explore");
     await waitForAppReady(page);
 
     // The mode toggle is inside a div with "hidden sm:flex"
@@ -210,7 +210,7 @@ test.describe("Mode toggle accessibility on mobile", () => {
   });
 
   test("color legend is hidden on mobile (known gap)", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/explore");
     await waitForAppReady(page);
 
     // The legend gradient is a w-28 h-2 div inside the hidden sm:flex container.
@@ -229,7 +229,7 @@ test.describe("Mode toggle accessibility on mobile", () => {
 
 test.describe("Text readability", () => {
   test("no text renders below 8px on home page", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/explore");
     await waitForAppReady(page);
 
     const tinyText = await page.evaluate(() => {
