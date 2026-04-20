@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { GlobeProvider } from "@/context/GlobeContext";
 
 export const metadata: Metadata = {
   title: "FloodPulse — Global Flood Exposure Clock",
@@ -14,7 +15,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <GlobeProvider>{children}</GlobeProvider>
+      </body>
     </html>
   );
 }

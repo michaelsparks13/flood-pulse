@@ -100,23 +100,32 @@ export default function Home() {
     }
   }, [hexOpacity]);
 
-  // Throttled cursor tracking for cursor glow (~30fps)
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    pendingCursor.current = { x: e.clientX, y: e.clientY };
-    if (cursorRafRef.current === null) {
-      cursorRafRef.current = requestAnimationFrame(() => {
-        setCursorPos(pendingCursor.current);
+  // Throttled cursor tracking for cursor glow (~30fps) — listens at the
+  // window level since the page wrapper uses `pointer-events-none` to let
+  // mouse events fall through to the persistent globe host behind it.
+  useEffect(() => {
+    const handleMove = (e: MouseEvent) => {
+      pendingCursor.current = { x: e.clientX, y: e.clientY };
+      if (cursorRafRef.current === null) {
+        cursorRafRef.current = requestAnimationFrame(() => {
+          setCursorPos(pendingCursor.current);
+          cursorRafRef.current = null;
+        });
+      }
+    };
+    const handleLeave = () => {
+      if (cursorRafRef.current !== null) {
+        cancelAnimationFrame(cursorRafRef.current);
         cursorRafRef.current = null;
-      });
-    }
-  }, []);
-
-  const handleMouseLeave = useCallback(() => {
-    if (cursorRafRef.current !== null) {
-      cancelAnimationFrame(cursorRafRef.current);
-      cursorRafRef.current = null;
-    }
-    setCursorPos(null);
+      }
+      setCursorPos(null);
+    };
+    window.addEventListener("mousemove", handleMove);
+    document.addEventListener("mouseleave", handleLeave);
+    return () => {
+      window.removeEventListener("mousemove", handleMove);
+      document.removeEventListener("mouseleave", handleLeave);
+    };
   }, []);
 
   const handleBasemapReady = useCallback(() => {
@@ -141,9 +150,12 @@ export default function Home() {
 
   return (
     <div
-      className="relative w-screen h-screen overflow-hidden bg-bg"
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
+      // NOTE: No `bg-bg` here — the map canvas lives in GlobeProvider's
+      // fixed z-0 host behind this wrapper. An opaque background would hide
+      // the globe. Body already has --color-bg via globals.css.
+      // `pointer-events-none` lets drag/hover fall through to the map;
+      // each interactive panel below opts back in with `pointer-events-auto`.
+      className="relative w-screen h-screen overflow-hidden pointer-events-none"
     >
       {/* Globe fills the viewport */}
       <Globe
@@ -213,7 +225,7 @@ export default function Home() {
       </div>
 
       {/* Top-left: counter + title — collapsible on mobile */}
-      <div data-testid="info-panel" className="absolute top-14 left-5 sm:top-8 sm:left-8 z-10 max-w-[calc(100vw-2.5rem)] sm:max-w-sm bg-panel/80 backdrop-blur-xl rounded-2xl border border-border shadow-[0_4px_24px_rgba(0,0,0,0.3)] p-4 sm:p-6">
+      <div data-testid="info-panel" className="absolute top-14 left-5 sm:top-8 sm:left-8 z-10 max-w-[calc(100vw-2.5rem)] sm:max-w-sm bg-panel/80 backdrop-blur-xl rounded-2xl border border-border shadow-[0_4px_24px_rgba(0,0,0,0.3)] p-4 sm:p-6 pointer-events-auto">
         <h1 className="text-text-primary text-xl font-semibold mb-1 tracking-tight">
           FloodPulse
         </h1>
@@ -252,7 +264,7 @@ export default function Home() {
       </div>
 
       {/* Top-right: compare + layers + methodology */}
-      <div className="absolute top-5 right-5 z-10 flex items-center gap-2">
+      <div className="absolute top-5 right-5 z-10 flex items-center gap-2 pointer-events-auto">
         <ComparisonPopover />
         <LayersPanel
           showBoundaries={showBoundaries}
@@ -269,7 +281,7 @@ export default function Home() {
 
       {/* Bottom: unified timeline + legend panel */}
       {!methodologyOpen && (
-      <div className="absolute bottom-5 left-1/2 -translate-x-1/2 w-full max-w-3xl px-5 sm:bottom-8 z-10">
+      <div className="absolute bottom-5 left-1/2 -translate-x-1/2 w-full max-w-3xl px-5 sm:bottom-8 z-10 pointer-events-auto">
         <div className="bg-panel/80 backdrop-blur-xl rounded-2xl border border-border shadow-[0_4px_24px_rgba(0,0,0,0.3)] px-5 sm:px-6 py-3 sm:py-4">
           <div className="flex items-end gap-6">
             <div className="flex-1 min-w-0">

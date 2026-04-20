@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { MapboxOverlay } from "@deck.gl/mapbox";
@@ -8,6 +8,7 @@ import { H3HexagonLayer } from "@deck.gl/geo-layers";
 import { DataFilterExtension } from "@deck.gl/extensions";
 import type { MapMode, HexDatum, HexCompactJSON } from "@/lib/types";
 import { getExposureRGBA, getFrequencyRGBA } from "@/lib/colors";
+import { useGlobe } from "@/context/GlobeContext";
 
 function formatPopulation(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
@@ -59,17 +60,26 @@ export default function Globe({
   onDataReady,
   onRevealStart,
 }: GlobeProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<maplibregl.Map | null>(null);
+  const {
+    containerRef,
+    mapRef,
+    overlayRef,
+    hexDataRef,
+    basemapReady,
+    dataReady,
+    setBasemapReady,
+    setDataReady,
+  } = useGlobe();
   const popupRef = useRef<maplibregl.Popup | null>(null);
-  const overlayRef = useRef<MapboxOverlay | null>(null);
-  const hexDataRef = useRef<HexDatum[] | null>(null);
   const flyInDoneRef = useRef(false);
-  const [loaded, setLoaded] = useState(false);
-  const [dataLoaded, setDataLoaded] = useState(false);
 
-  // Fetch compact hex data once on mount
+  // Fetch compact hex data once on mount (shared across route transitions)
   useEffect(() => {
+    // If data already loaded (e.g., via earlier route), don't refetch
+    if (hexDataRef.current) {
+      if (!dataReady) setDataReady(true);
+      return;
+    }
     fetch("/data/hex_compact.json")
       .then((r) => r.json())
       .then((json: HexCompactJSON) => {
@@ -83,14 +93,22 @@ export default function Globe({
         });
         console.log(`[FloodPulse] Loaded ${data.length} hexes`);
         hexDataRef.current = data;
-        setDataLoaded(true);
+        setDataReady(true);
       })
       .catch((err) => console.error("[FloodPulse] Data load failed:", err));
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Initialize MapLibre map
   useEffect(() => {
-    if (!containerRef.current || mapRef.current) return;
+    // If the map already exists (user navigated back from another route),
+    // the persistent GlobeContext has retained it. Fire the readiness
+    // callbacks and return early — do NOT reinitialize.
+    if (mapRef.current) {
+      if (!basemapReady) setBasemapReady(true);
+      onBasemapReady?.();
+      return;
+    }
+    if (!containerRef.current) return;
 
     const container = containerRef.current;
     let cancelled = false;
@@ -210,7 +228,7 @@ export default function Globe({
           layout: { visibility: "none" },
         });
 
-        setLoaded(true);
+        setBasemapReady(true);
         onBasemapReady?.();
       });
 
@@ -224,22 +242,16 @@ export default function Globe({
 
     return () => {
       cancelled = true;
+      // NOTE: Do not destroy the map — it lives in GlobeContext and persists
+      // across route transitions. Only clean up route-scoped listeners/popups.
       popupRef.current?.remove();
-      if (overlayRef.current && mapRef.current) {
-        mapRef.current.removeControl(overlayRef.current as unknown as maplibregl.IControl);
-        overlayRef.current = null;
-      }
-      if (mapRef.current) {
-        mapRef.current.remove();
-        mapRef.current = null;
-      }
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── deck.gl overlay: create once, update layers on prop changes ──────
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !loaded || !dataLoaded) return;
+    if (!map || !basemapReady || !dataReady) return;
 
     const hexData = hexDataRef.current;
     if (!hexData) return;
@@ -350,28 +362,31 @@ export default function Globe({
       triggerReveal();
     } else {
       overlayRef.current.setProps({ layers: [layer] });
+      // Overlay already existed (navigated back to this route). Fire the
+      // readiness callback so consuming pages can unblock their UI.
+      onDataReady?.();
     }
-  }, [dataLoaded, year, mapMode, hexOpacity, loaded]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [dataReady, year, mapMode, hexOpacity, basemapReady]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Toggle country boundaries
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !loaded) return;
+    if (!map || !basemapReady) return;
     const opacity = showBoundaries ? (satellite ? 0.35 : 0.15) : 0;
     map.setPaintProperty("country-boundaries", "line-opacity", opacity);
-  }, [showBoundaries, satellite, loaded]);
+  }, [showBoundaries, satellite, basemapReady]);
 
   // Toggle labels
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !loaded) return;
+    if (!map || !basemapReady) return;
     map.setLayoutProperty("labels", "visibility", showLabels ? "visible" : "none");
-  }, [showLabels, loaded]);
+  }, [showLabels, basemapReady]);
 
   // Toggle satellite basemap
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !loaded) return;
+    if (!map || !basemapReady) return;
 
     if (satellite) {
       map.setLayoutProperty("basemap", "visibility", "none");
@@ -384,12 +399,9 @@ export default function Globe({
       map.setPaintProperty("country-boundaries", "line-width", 0.8);
       map.setPaintProperty("background", "background-color", "#07060d");
     }
-  }, [satellite, loaded]);
+  }, [satellite, basemapReady]);
 
-  return (
-    <div
-      ref={containerRef}
-      style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, width: "100%", height: "100%" }}
-    />
-  );
+  // The map canvas lives in GlobeProvider's persistent fixed host, so the
+  // component itself renders nothing.
+  return null;
 }
