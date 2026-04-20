@@ -1,5 +1,6 @@
 import type { CameraKeyframe } from "./storyTypes";
 
+// Act 1 — initial wide globe, slight tilt for parallax
 export const GLOBE_HOME: CameraKeyframe = {
   center: [20, 15],
   zoom: 0.8,
@@ -8,6 +9,7 @@ export const GLOBE_HOME: CameraKeyframe = {
   duration: "auto",
 };
 
+// Acts 2, 5, 6 — mid-zoom globe with subtle tilt
 export const GLOBE_MID: CameraKeyframe = {
   center: [20, 15],
   zoom: 1.6,
@@ -16,6 +18,7 @@ export const GLOBE_MID: CameraKeyframe = {
   duration: "auto",
 };
 
+// Acts 8, 9 — flat (no tilt) globe for frequency map + handoff
 export const GLOBE_FLAT: CameraKeyframe = {
   center: [20, 15],
   zoom: 1.4,
@@ -24,6 +27,7 @@ export const GLOBE_FLAT: CameraKeyframe = {
   duration: "auto",
 };
 
+// Act 3 — Bangladesh country-scale reveal
 export const BANGLADESH_COUNTRY: CameraKeyframe = {
   center: [90, 23.7],
   zoom: 4.5,
@@ -32,6 +36,7 @@ export const BANGLADESH_COUNTRY: CameraKeyframe = {
   duration: "auto",
 };
 
+// Act 4 — tight zoom on a single Khulna-area hex
 export const KHULNA_HEX: CameraKeyframe = {
   center: [89.56, 22.84],
   zoom: 5.5,
@@ -40,6 +45,7 @@ export const KHULNA_HEX: CameraKeyframe = {
   duration: "auto",
 };
 
+// Act 7 — first of three-city sequence
 export const DHAKA: CameraKeyframe = {
   center: [90.4, 23.8],
   zoom: 6.5,
@@ -48,6 +54,7 @@ export const DHAKA: CameraKeyframe = {
   duration: 2500,
 };
 
+// Act 7 — second of three-city sequence
 export const JAKARTA: CameraKeyframe = {
   center: [106.8, -6.2],
   zoom: 6.5,
@@ -56,6 +63,7 @@ export const JAKARTA: CameraKeyframe = {
   duration: 2500,
 };
 
+// Act 7 — third of three-city sequence
 export const NEW_ORLEANS: CameraKeyframe = {
   center: [-90.1, 29.95],
   zoom: 6.5,
