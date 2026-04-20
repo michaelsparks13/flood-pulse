@@ -30,7 +30,7 @@ export function useCameraChoreographer() {
       bearing: kf.bearing,
       duration: kf.duration === "auto" ? undefined : kf.duration,
       essential: true,
-      easing: kf.easing,
+      ...(kf.easing ? { easing: kf.easing } : {}),
     });
   }, [mapRef]);
 

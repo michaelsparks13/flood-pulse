@@ -49,6 +49,41 @@ test("Act 2 counter shows year advancing as user scrolls", async ({ page }) => {
   expect(laterYear).toBeLessThanOrEqual(2026);
 });
 
+test("Act 3 flies to Bangladesh", async ({ page }) => {
+  // Use reduced-motion so the choreographer calls jumpTo (instant) instead of flyTo.
+  // flyTo with pitch changes on the globe projection triggers a MapLibre calcMatrices
+  // error that freezes the animation — reduced-motion avoids this entirely while still
+  // exercising the full act-enter → camera-update code path.
+  await page.emulateMedia({ reducedMotion: "reduce" });
+
+  await page.goto("/");
+  await page.waitForFunction(
+    () => !!(window as unknown as { __map?: { loaded: () => boolean } }).__map,
+    { timeout: 10_000 }
+  );
+  await page.waitForTimeout(1500);
+
+  // Scroll into Act 3. Each act is 1.2×100vh; at Playwright's 1280×720 default
+  // viewport that is 864 px/act. Act 3 ("where") spans 1728–2592 px; Act 4 starts
+  // triggering around scrollY ≈ 2160 px, so 1800 px lands safely in Act 3.
+  await page.evaluate(() => window.scrollTo({ top: 1800, behavior: "instant" }));
+  // jumpTo is instantaneous; a short wait is enough for React state to settle.
+  await page.waitForTimeout(1000);
+
+  const center = await page.evaluate(() => {
+    const map = (window as unknown as { __map?: { getCenter: () => { lng: number; lat: number } } }).__map;
+    if (!map) return null;
+    const c = map.getCenter();
+    return { lng: c.lng, lat: c.lat };
+  });
+  expect(center).not.toBeNull();
+  // Bangladesh is approximately lng 88-92, lat 22-26
+  expect(center!.lng).toBeGreaterThan(80);
+  expect(center!.lng).toBeLessThan(100);
+  expect(center!.lat).toBeGreaterThan(18);
+  expect(center!.lat).toBeLessThan(28);
+});
+
 test("Act 1 shows hexes at year 2000", async ({ page }) => {
   await page.goto("/");
   await page.waitForFunction(
