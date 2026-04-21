@@ -1,4 +1,5 @@
 import type { MapMode } from "@/lib/types";
+import type { DatasetFilter } from "./datasetLayers";
 
 export interface CameraKeyframe {
   center: [number, number];
@@ -13,26 +14,30 @@ export interface ActDataState {
   year: number;
   mapMode: MapMode;
   hexOpacity: number;
-  /** Specific H3 index to pulse, if any (Act 4). */
+  /** Which dataset(s) the hex layer shows. */
+  datasetFilter: DatasetFilter;
+  /** Act 4: specific hex or cluster highlight. */
   highlightHex?: string;
-  /** When true, render before/after dual-layer compare (Act 5). */
-  splitCompare?: boolean;
-  /** When true, recolor hexes by client-computed confidence (Act 6). */
-  confidenceMode?: boolean;
-  /** When true, render the globe fog mask (Act 3). */
-  fogMask?: boolean;
+  /** Act 6: current target country for the CountryGapCard. */
+  countryGapIso3?: string;
+  /** Act 2: 0..1 scroll progress, drives reveal wipe + counter. */
+  revealProgress?: number;
+  /** Act 3: 0..1 scroll progress, drives ratio line reveal. */
+  ratioProgress?: number;
+  /** Act 5: 0..1 scroll progress, drives country-bar stagger. */
+  ladderProgress?: number;
 }
 
 export interface ActDefinition {
   id: string;
-  /** Short title shown only to screen readers. */
+  /** Screen-reader title. */
   ariaTitle: string;
-  copy: string | string[]; // multi-string = Act 7 city sequence
+  copy: string | string[];
   camera: CameraKeyframe;
   data: ActDataState;
   /**
-   * If true, scroll progress (0..1) within this act drives a continuous
-   * transformation (year, bearing) — see lib/story/acts.ts for handlers.
+   * If true, scroll progress drives a continuous transformation. Handlers
+   * live in useActDataState.
    */
   progressDriven?: boolean;
 }

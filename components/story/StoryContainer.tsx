@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import scrollama from "scrollama";
 import { Act } from "./Act";
-import { ACTS, CITY_SEQUENCE } from "@/lib/story/acts";
+import { ACTS, COUNTRY_SEQUENCE } from "@/lib/story/acts";
 import { useCameraChoreographer } from "./useCameraChoreographer";
 
 interface StoryContainerProps {
@@ -14,7 +14,7 @@ export default function StoryContainer({ onActChange }: StoryContainerProps) {
   const [activeAct, setActiveAct] = useState<string>(ACTS[0].id);
   const [progressById, setProgressById] = useState<Record<string, number>>({});
   const { flyTo } = useCameraChoreographer();
-  const lastCityIdxRef = useRef<number>(-1);
+  const lastCountryIdxRef = useRef<number>(-1);
 
   useEffect(() => {
     const scroller = scrollama();
@@ -27,8 +27,8 @@ export default function StoryContainer({ onActChange }: StoryContainerProps) {
       .onStepEnter((res) => {
         const id = res.element.getAttribute("data-story-step")!;
         setActiveAct(id);
-        if (id === "cities") {
-          lastCityIdxRef.current = -1;
+        if (id === "three-stories") {
+          lastCountryIdxRef.current = -1;
         }
         const act = ACTS.find((a) => a.id === id);
         if (act) flyTo(act.camera);
@@ -38,15 +38,15 @@ export default function StoryContainer({ onActChange }: StoryContainerProps) {
         const id = res.element.getAttribute("data-story-step")!;
         setProgressById((p) => ({ ...p, [id]: res.progress }));
 
-        if (id === "cities") {
-          // Map scroll progress (0..1) to city index 0..2
+        if (id === "three-stories") {
+          // Map scroll progress (0..1) to country index 0..2
           const idx = Math.min(
-            CITY_SEQUENCE.length - 1,
-            Math.floor(res.progress * CITY_SEQUENCE.length)
+            COUNTRY_SEQUENCE.length - 1,
+            Math.floor(res.progress * COUNTRY_SEQUENCE.length)
           );
-          if (idx !== lastCityIdxRef.current) {
-            lastCityIdxRef.current = idx;
-            flyTo(CITY_SEQUENCE[idx]);
+          if (idx !== lastCountryIdxRef.current) {
+            lastCountryIdxRef.current = idx;
+            flyTo(COUNTRY_SEQUENCE[idx].camera);
           }
         }
         onActChange?.(id, res.progress);
@@ -94,7 +94,7 @@ export default function StoryContainer({ onActChange }: StoryContainerProps) {
           key={act.id}
           id={act.id}
           ariaTitle={act.ariaTitle}
-          heightVh={act.id === "cities" ? 3 : 1.2}
+          heightVh={act.id === "three-stories" ? 3 : 1.2}
         >
           {Array.isArray(act.copy) ? (
             act.copy.map((line, i) => {

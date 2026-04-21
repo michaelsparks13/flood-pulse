@@ -1,27 +1,42 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useState } from "react";
+import { useMemo } from "react";
 import StoryContainer from "@/components/story/StoryContainer";
-import StoryCounter from "@/components/story/StoryCounter";
 import StoryProgressChip from "@/components/story/StoryProgressChip";
-import FogMask from "@/components/story/FogMask";
-import CompareDivider from "@/components/story/CompareDivider";
 import HandoffButton from "@/components/story/HandoffButton";
+import DatasetRevealLayer from "@/components/story/DatasetRevealLayer";
+import DatasetCounter from "@/components/story/DatasetCounter";
+import RatioLineChart from "@/components/story/RatioLineChart";
+import CountryGapBar from "@/components/story/CountryGapBar";
+import CountryGapCard from "@/components/story/CountryGapCard";
 import { useActDataState } from "@/components/story/useActDataState";
 import { useScrollVelocity } from "@/components/story/useScrollVelocity";
+import { useReducedMotion } from "@/components/story/useReducedMotion";
 import { useGlobe } from "@/context/GlobeContext";
+import { byIso3 } from "@/lib/story/countryComparison";
+import { COUNTRY_SEQUENCE } from "@/lib/story/acts";
 
 const Globe = dynamic(() => import("@/components/Globe"), { ssr: false });
 
+const GFD_PE_MATCHED = 290_000_000;
+const FP_PE_MATCHED = 2_880_000_000;
+
 export default function Home() {
-  const { dataState, summary, activeActId, handleActChange } = useActDataState();
-  const [dividerX, setDividerX] = useState(0.5);
-  const counterVisible = activeActId !== "breath" && !dataState.splitCompare;
-  const chipVisible = ["confidence", "cities", "frequency", "handoff"].includes(activeActId);
+  const {
+    activeActId,
+    dataState,
+    summary,
+    comparison,
+    ratio,
+    activeCountryIndex,
+    handleActChange,
+  } = useActDataState();
+
+  const reducedMotion = useReducedMotion();
 
   const { mapRef } = useGlobe();
-  const velocityEnabled = ["breath", "counter"].includes(activeActId);
+  const velocityEnabled = activeActId === "old-map" || activeActId === "reveal";
   useScrollVelocity((velocity) => {
     const map = mapRef.current;
     if (!map) return;
@@ -30,6 +45,28 @@ export default function Home() {
       map.setBearing(map.getBearing() + delta);
     }
   }, velocityEnabled);
+
+  const chipVisible = [
+    "ratio",
+    "why",
+    "ladder",
+    "three-stories",
+    "handoff",
+  ].includes(activeActId);
+
+  const revealProgress = dataState.revealProgress ?? 0;
+  const ratioProgress = dataState.ratioProgress ?? 0;
+  const ladderProgress = dataState.ladderProgress ?? 0;
+
+  const activeCountry = useMemo(() => {
+    if (activeActId !== "three-stories" || activeCountryIndex < 0) return null;
+    return COUNTRY_SEQUENCE[activeCountryIndex];
+  }, [activeActId, activeCountryIndex]);
+
+  const activeCountryEntry = useMemo(() => {
+    if (!comparison || !activeCountry) return null;
+    return byIso3(comparison, activeCountry.iso3);
+  }, [comparison, activeCountry]);
 
   return (
     <>
@@ -42,19 +79,38 @@ export default function Home() {
       <Globe
         year={dataState.year}
         mapMode={dataState.mapMode}
-        showBoundaries={true}
+        showBoundaries
         showLabels={false}
         satellite={false}
         hexOpacity={dataState.hexOpacity}
         highlightHex={dataState.highlightHex}
-        splitCompare={!!dataState.splitCompare}
-        confidenceMode={!!dataState.confidenceMode}
-        dividerX={dividerX}
+        datasetFilter={dataState.datasetFilter}
       />
-      <FogMask active={!!dataState.fogMask} />
-      <StoryCounter summary={summary} year={dataState.year} visible={counterVisible} />
+      <DatasetRevealLayer progress={revealProgress} reducedMotion={reducedMotion} />
+      <DatasetCounter
+        progress={revealProgress}
+        gfdPe={GFD_PE_MATCHED}
+        fpPe={FP_PE_MATCHED}
+        visible={activeActId === "reveal"}
+      />
+      <RatioLineChart
+        progress={ratioProgress}
+        years={ratio?.calibration_gfd.years ?? []}
+        ratios={ratio?.calibration_gfd.pe_ratio ?? []}
+        lowConfidenceYears={ratio?.low_confidence_years ?? []}
+        visible={activeActId === "ratio"}
+      />
+      <CountryGapBar
+        data={comparison}
+        progress={ladderProgress}
+        visible={activeActId === "ladder"}
+      />
+      <CountryGapCard
+        iso3={activeCountry?.iso3 ?? null}
+        entry={activeCountryEntry}
+        visible={activeActId === "three-stories"}
+      />
       <StoryProgressChip summary={summary} year={dataState.year} visible={chipVisible} />
-      <CompareDivider active={!!dataState.splitCompare} onChange={setDividerX} />
       <HandoffButton visible={activeActId === "handoff"} />
       <StoryContainer onActChange={handleActChange} />
     </>
