@@ -12,6 +12,7 @@ export interface HexDatum {
   cc: string;  // country code
   ft: number;  // frequency trend (-50 to +50)
   rp: number;  // return period (years)
+  isGfdObserved?: boolean;  // enriched client-side; country is in Tellman 2021's GFD list
 }
 
 /** Wire format for hex_compact.json */
@@ -122,4 +123,30 @@ export interface ComparisonData {
   low_confidence_years: number[];
   methodology_notes: Record<string, string>;
   sources: Record<string, { citation: string; doi?: string; url?: string }>;
+}
+
+/** Per-country FloodPulse vs GFD vs EM-DAT comparison, emitted by pipeline/05c */
+export interface CountryComparisonEntry {
+  name: string;
+  region: "Global South" | "Global North";
+  floodpulse_pe_2000_2018: number;
+  floodpulse_pe_2000_latest: number;
+  gfd_pe_2000_2018: number | null;
+  gfd_events_2000_2018: number | null;
+  emdat_affected_2000_2022: number | null;
+  fp_gfd_ratio: number | null;
+  fp_emdat_ratio: number | null;
+  population_2020: number | null;
+}
+
+export interface CountryComparisonData {
+  generated: string;
+  floodpulse_data_through: string;
+  countries: Record<string, CountryComparisonEntry>;
+  top_gap_countries: string[];
+  global_south_share: {
+    floodpulse_pct: number;
+    gfd_pct: number;
+    emdat_pct: number;
+  };
 }

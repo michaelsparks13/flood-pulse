@@ -49,6 +49,8 @@ interface GlobeProps {
   confidenceMode?: boolean;
   /** Screen-space X position of the divider (0..1, relative to viewport width). Default 0.5. */
   dividerX?: number;
+  /** Dataset filter mode: "all" = default, "gfd" = only GFD-observed-country hexes, "fp" = only non-GFD-country hexes. */
+  datasetFilter?: "all" | "gfd" | "fp";
   onBasemapReady?: () => void;
   onDataReady?: () => void;
   onRevealStart?: () => void;
@@ -65,6 +67,7 @@ export default function Globe({
   splitCompare = false,
   confidenceMode = false,
   dividerX = 0.5,
+  datasetFilter = "all",
   onBasemapReady,
   onDataReady,
   onRevealStart,
@@ -90,9 +93,13 @@ export default function Globe({
       if (!dataReady) setDataReady(true);
       return;
     }
-    fetch("/data/hex_compact.json")
-      .then((r) => r.json())
-      .then((json: HexCompactJSON) => {
+    Promise.all([
+      fetch("/data/hex_compact.json").then((r) => r.json() as Promise<HexCompactJSON>),
+      fetch("/data/gfd_observed_countries.json")
+        .then((r) => (r.ok ? (r.json() as Promise<string[]>) : [] as string[]))
+        .catch(() => [] as string[]),
+    ])
+      .then(([json, gfdCountries]) => {
         const { columns, rows } = json;
         const data: HexDatum[] = rows.map((row) => {
           const obj: Record<string, string | number> = {};
@@ -101,7 +108,11 @@ export default function Globe({
           });
           return obj as unknown as HexDatum;
         });
-        console.log(`[FloodPulse] Loaded ${data.length} hexes`);
+        const gfdSet = new Set(gfdCountries);
+        for (const hex of data) {
+          hex.isGfdObserved = gfdSet.has(hex.cc);
+        }
+        console.log(`[FloodPulse] Loaded ${data.length} hexes; GFD-observed countries: ${gfdCountries.length}`);
         hexDataRef.current = data;
         setDataReady(true);
       })
@@ -281,6 +292,13 @@ export default function Globe({
       data: hexData,
       getHexagon: (d: HexDatum) => d.h,
       getFillColor: (d: HexDatum) => {
+        // Dataset filter: hide hexes that don't match the selected dataset
+        if (datasetFilter === "gfd" && !d.isGfdObserved) return [0, 0, 0, 0];
+        if (datasetFilter === "fp" && d.isGfdObserved) return [0, 0, 0, 0];
+        // Apply dataset-specific palette when filter is active
+        if (datasetFilter === "gfd") return [0x22, 0xd3, 0xee, Math.round(hexOpacity * 180)];
+        if (datasetFilter === "fp") return [0xef, 0x8a, 0x62, Math.round(hexOpacity * 220)];
+        // Default: exposure/frequency/confidence coloring
         const [r, g, b] = colorFn(d);
         return [r, g, b, alpha];
       },
@@ -297,7 +315,7 @@ export default function Globe({
       filterRange: [0, year],
 
       updateTriggers: {
-        getFillColor: [mapMode, hexOpacity, confidenceMode],
+        getFillColor: [mapMode, hexOpacity, confidenceMode, datasetFilter],
       },
 
       onHover: (info: any) => {
