@@ -1,0 +1,180 @@
+iso3,country_name,emdat_affected_2000_2022,emdat_events_2000_2022
+AFG,Afghanistan,619084,19
+AGO,Angola,1182893,19
+ALB,Albania,159086,9
+ARE,United Arab Emirates,188,1
+ARG,Argentina,1476728,18
+ARM,Armenia,0,1
+AUS,Australia,248388,17
+AUT,Austria,61616,5
+AZE,Azerbaijan,106500,3
+BDI,Burundi,183308,15
+BEL,Belgium,3300,4
+BEN,Benin,1220351,8
+BFA,Burkina Faso,584644,12
+BGD,Bangladesh,93854431,20
+BGR,Bulgaria,60417,8
+BHS,Bahamas,1000,1
+BIH,Bosnia and Herzegovina,1345099,8
+BLR,Belarus,50000,1
+BLZ,Belize,58000,2
+BOL,Bolivia,2967462,17
+BRA,Brazil,7434611,21
+BRB,Barbados,0,0
+BTN,Bhutan,1000,1
+BWA,Botswana,160077,6
+CAN,Canada,182323,16
+CHE,Switzerland,5601,3
+CHL,Chile,894609,13
+CHN,China,923958483,21
+CIV,Cote d'Ivoire,67403,10
+CMR,Cameroon,412468,12
+COD,Democratic Republic of Congo,975759,17
+COG,Congo,373614,7
+COL,Colombia,10194271,21
+COM,Comoros,67637,2
+CPV,Cape Verde,150,1
+CRI,Costa Rica,478209,12
+CUB,Cuba,89091,9
+CYP,Cyprus,0,0
+CZE,Czechia,1520165,6
+DEU,Germany,338508,9
+DJI,Djibouti,460000,3
+DMA,Dominica,0,0
+DNK,Denmark,0,0
+DOM,Dominican Republic,2994920,13
+DZA,Algeria,236365,14
+ECU,Ecuador,576806,14
+EGY,Egypt,24770,3
+ERI,Eritrea,7013,1
+ESP,Spain,14278,13
+EST,Estonia,0,0
+ETH,Ethiopia,3527824,15
+FIN,Finland,400,1
+FJI,Fiji,31825,6
+FRA,France,68392,15
+GAB,Gabon,77845,1
+GBR,United Kingdom,434413,14
+GEO,Georgia,163642,11
+GHA,Ghana,1963890,14
+GIN,Guinea,447816,11
+GMB,Gambia,77469,7
+GNB,Guinea-Bissau,58542,3
+GRC,Greece,20424,12
+GRD,Grenada,0,0
+GTM,Guatemala,1054730,11
+GUY,Guyana,612048,5
+HKG,Hong Kong,0,0
+HND,Honduras,957927,13
+HRV,Croatia,15512,9
+HTI,Haiti,705278,18
+HUN,Hungary,105170,9
+IDN,Indonesia,7280599,21
+IND,India,346392041,21
+IRL,Ireland,1200,3
+IRN,Iran,12131229,16
+IRQ,Iraq,170876,11
+ISL,Iceland,0,0
+ISR,Israel,0,3
+ITA,Italy,80719,17
+JAM,Jamaica,30000,2
+JOR,Jordan,64,1
+JPN,Japan,2319740,18
+KAZ,Kazakhstan,154547,12
+KEN,Kenya,3552904,19
+KGZ,Kyrgyzstan,13895,3
+KHM,Cambodia,10849025,14
+KIR,Kiribati,305,2
+KNA,Saint Kitts and Nevis,0,0
+KOR,South Korea,385940,11
+KWT,Kuwait,0,1
+LAO,Laos,2894061,12
+LBN,Lebanon,17000,1
+LBR,Liberia,48841,5
+LBY,Libya,22030,2
+LCA,Saint Lucia,21984,2
+LKA,Sri Lanka,9835258,21
+LSO,Lesotho,5000,1
+LTU,Lithuania,0,1
+LUX,Luxembourg,0,0
+LVA,Latvia,0,0
+MAC,Macao,0,0
+MAR,Morocco,135125,10
+MDA,Moldova,23000,4
+MDG,Madagascar,246833,6
+MDV,Maldives,3449,2
+MEX,Mexico,3551786,18
+MKD,North Macedonia,253423,8
+MLI,Mali,275689,16
+MMR,Myanmar,3250503,14
+MNE,Montenegro,7886,3
+MNG,Mongolia,52556,5
+MOZ,Mozambique,7323519,17
+MRT,Mauritania,202601,11
+MUS,Mauritius,82,1
+MWI,Malawi,3152922,18
+MYS,Malaysia,856646,18
+NAM,Namibia,1102952,13
+NER,Niger,2879898,18
+NGA,Nigeria,11559498,20
+NIC,Nicaragua,417456,13
+NLD,Netherlands,0,0
+NOR,Norway,2100,2
+NPL,Nepal,4231746,17
+NZL,New Zealand,13050,9
+OMN,Oman,300,4
+PAK,Pakistan,47629771,20
+PAN,Panama,143822,16
+PER,Peru,4492197,19
+PHL,Philippines,23323437,20
+PNG,Papua New Guinea,450043,11
+POL,Poland,120943,8
+PRK,North Korea,4110553,14
+PRT,Portugal,1264,7
+PRY,Paraguay,1096152,8
+PSE,Palestine,14500,3
+QAT,Qatar,1500,1
+ROU,Romania,236266,18
+RUS,Russia,1138020,18
+RWA,Rwanda,118885,12
+SAU,Saudi Arabia,28067,14
+SDN,Sudan,4065098,17
+SEN,Senegal,894123,13
+SLB,Solomon Islands,90080,5
+SLE,Sierra Leone,55888,8
+SLV,El Salvador,314431,9
+SOM,Somalia,4493098,19
+SRB,Serbia,105716,9
+SSD,South Sudan,3119591,7
+SUR,Suriname,31548,2
+SVK,Slovakia,1430,7
+SVN,Slovenia,14550,2
+SWE,Sweden,0,0
+SWZ,Eswatini,274900,3
+SYR,Syria,235000,2
+TCD,Chad,1171695,9
+TGO,Togo,372755,6
+THA,Thailand,41728425,19
+TJK,Tajikistan,514565,17
+TKM,Turkmenistan,0,0
+TLS,Timor,13636,4
+TON,Tonga,0,0
+TTO,Trinidad and Tobago,150000,1
+TUN,Tunisia,103508,5
+TUR,Turkey,183567,14
+TUV,Tuvalu,0,0
+TWN,Taiwan,42074,4
+TZA,Tanzania,433955,17
+UGA,Uganda,1114259,14
+UKR,Ukraine,636184,9
+URY,Uruguay,202733,11
+USA,United States,11650813,21
+UZB,Uzbekistan,71550,2
+VCT,Saint Vincent and the Grenadines,42697,3
+VEN,Venezuela,305617,14
+VNM,Vietnam,17815509,20
+VUT,Vanuatu,3951,2
+WSM,Samoa,0,0
+YEM,Yemen,374305,13
+ZMB,Zambia,3754780,14
+ZWE,Zimbabwe,344022,8

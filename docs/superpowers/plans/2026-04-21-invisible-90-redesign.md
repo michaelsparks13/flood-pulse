@@ -4,7 +4,7 @@
 
 **Goal:** Rebuild the FloodPulse home-page scrollytelling from a population-exposure arc into a dataset-comparison arc (*The Invisible 90%*), backed by a new per-country comparison pipeline step and a signature "reveal wipe" globe moment.
 
-**Architecture:** Reuse the existing `StoryContainer` + scrollama + `GlobeContext` infrastructure. Add a new pipeline step `05c_country_comparison.py` that emits `country_comparison.json` and `gfd_observed_h3.json`. Add five new story components (DatasetRevealLayer, DatasetCounter, RatioLineChart, CountryGapBar, CountryGapCard). Rewrite `lib/story/acts.ts` and `lib/story/cameraKeyframes.ts` wholesale for the new 7-act arc. Retire `StoryCounter.tsx` and `CompareDivider.tsx`. Append a "Where the gap is biggest" section to `/compare`. No route changes. Shared-globe handoff preserved unchanged.
+**Architecture:** Reuse the existing `StoryContainer` + scrollama + `GlobeContext` infrastructure. Add a new pipeline step `05c_country_comparison.py` that emits `country_comparison.json` and `gfd_observed_countries.json`. Add five new story components (DatasetRevealLayer, DatasetCounter, RatioLineChart, CountryGapBar, CountryGapCard). Rewrite `lib/story/acts.ts` and `lib/story/cameraKeyframes.ts` wholesale for the new 7-act arc. Retire `StoryCounter.tsx` and `CompareDivider.tsx`. Append a "Where the gap is biggest" section to `/compare`. No route changes. Shared-globe handoff preserved unchanged.
 
 **Tech Stack:** Next.js 15 App Router, TypeScript, React 19, deck.gl (H3HexagonLayer + DataFilterExtension), MapLibre GL 5.x, scrollama, Tailwind CSS 4, Recharts (already present for `/compare`). Pipeline: Python 3.11+, pandas, h3 (Python), shapely, pyarrow. Tests: Playwright (scrollytelling), pytest (pipeline).
 
@@ -19,12 +19,12 @@
 **Created:**
 - `pipeline/data/reference/gfd_country_pe.csv` — curated from Tellman 2021 supplementary Table S2
 - `pipeline/data/reference/emdat_country_affected.csv` — curated from Hu 2024 Table 1
-- `pipeline/data/reference/gfd_observed_h3.json` — H3 cells intersecting any GFD event polygon
-- `pipeline/scripts/build_gfd_observed_h3.py` — one-off sub-script that builds `gfd_observed_h3.json` from GFD GCS-bucket polygons
+- `pipeline/data/reference/gfd_observed_countries.json` — H3 cells intersecting any GFD event polygon
+- `pipeline/scripts/build_gfd_observed_countries.py` — one-off sub-script that builds `gfd_observed_countries.json` from GFD GCS-bucket polygons
 - `pipeline/05c_country_comparison.py` — joins FP + GFD + EM-DAT per country
 - `pipeline/tests/test_country_comparison.py` — pytest for pipeline step
 - `public/data/country_comparison.json` — pipeline output, consumed by `/` and `/compare`
-- `public/data/gfd_observed_h3.json` — pipeline output, consumed by client for dataset-filter layer
+- `public/data/gfd_observed_countries.json` — pipeline output, consumed by client for dataset-filter layer
 - `lib/story/datasetLayers.ts` — layer configuration for GFD-only vs FP-only
 - `lib/story/countryComparison.ts` — typed loader/selector for `country_comparison.json`
 - `lib/types.ts` — add `CountryComparisonData` interface
@@ -39,12 +39,12 @@
 - `lib/story/cameraKeyframes.ts` — wholesale rewrite, new targets
 - `lib/story/storyTypes.ts` — add `revealProgress`, `ratioProgress`, `countryGapIso3`, `datasetFilter`, drop legacy fields
 - `components/story/useActDataState.ts` — generalise progress handling for Act 2 (reveal wipe) and Act 3 (ratio line draw)
-- `context/GlobeContext.tsx` — fetch `country_comparison.json` + `gfd_observed_h3.json` on mount
+- `context/GlobeContext.tsx` — fetch `country_comparison.json` + `gfd_observed_countries.json` on mount
 - `components/Globe.tsx` — consume `datasetFilter` prop (`"all" | "gfd" | "fp"`), enrich `HexDatum` with `isGfdObserved` on data load
 - `app/page.tsx` — wire new acts and new components
 - `app/compare/page.tsx` — append "Where the gap is biggest" section
 - `tests/story.spec.ts` — wholesale rewrite for the 7 new acts
-- `pipeline/config.py` — add paths for `COUNTRY_COMPARISON_JSON`, `GFD_OBSERVED_H3_JSON`, reference-data subdir
+- `pipeline/config.py` — add paths for `COUNTRY_COMPARISON_JSON`, `GFD_OBSERVED_COUNTRIES_JSON`, reference-data subdir
 
 **Deleted:**
 - `components/story/CompareDivider.tsx`
@@ -169,13 +169,23 @@ git commit -m "[pipeline] Add EM-DAT per-country affected reference data (Hu 202
 
 ---
 
-## Task 3: Sub-script — build `gfd_observed_h3.json`
+## Task 3: Build `gfd_observed_countries.json` from Tellman 2021's published country list
 
 **Files:**
-- Create: `pipeline/scripts/build_gfd_observed_h3.py`
-- Create: `pipeline/data/reference/gfd_observed_h3.json`
+- Create: `pipeline/scripts/build_gfd_observed_countries.py`
+- Create: `pipeline/data/reference/gfd_observed_countries.json`
 
-**Context:** The Global Flood Database publishes per-event polygons on Google Cloud Storage at `gs://gfd_v3/`. We need a lookup set of H3 r-5 cells that touch any GFD event, so the client can tell GFD-observed hexes apart from FP-only hexes. This script is one-off — the output is checked into git because regenerating requires GCS access.
+**Context:** Originally this task was to intersect GFD's per-event polygons with H3 r-5 cells. Two discoveries while executing the plan pushed to a country-level approach:
+
+1. GFD event polygons are on Google Cloud Storage (`gs://gfd_v1_4`) and require GCS auth we don't have.
+2. The public DFO polygon fallback (`dfo_polys_20191203.shp` in the cloudtostreet repo) gives *catchment-wide* extents rather than inundation extents — polyfilling them covered 83% of FP's hex set, too broad for the "invisible" narrative.
+
+Tellman 2021's `gfd_popsummary.csv` (cloudtostreet GitHub, 119 rows) lists exactly the countries where GFD observed non-zero PE. Using that list as the dataset boundary is:
+- Tighter than any H3 approximation we can produce without GCS auth.
+- Directly sourced from Tellman's published data — no interpretation on our side.
+- Narratively stronger: entire FP-covered countries (e.g. DRC, Congo, Burundi) are **fully absent** from GFD's country list. The "invisible" set is not about hex granularity — it's about which countries the old map never enumerated.
+
+The client filter becomes `isGfdObserved = gfd_country_set.has(hex.cc)` instead of per-hex lookup.
 
 - [ ] **Step 1: Create the script directory**
 
@@ -185,81 +195,43 @@ mkdir -p pipeline/scripts
 
 - [ ] **Step 2: Write the script**
 
-Create `pipeline/scripts/build_gfd_observed_h3.py`:
+Create `pipeline/scripts/build_gfd_observed_countries.py`:
 
 ```python
 """
-One-off sub-script: build gfd_observed_h3.json.
+Build gfd_observed_countries.json — ISO3 list of countries with GFD-observed
+PE > 0, sourced from Tellman 2021's gfd_popsummary.csv (cloudtostreet repo).
 
-Reads GFD event footprints from Google Cloud Storage
-(gs://gfd_v3/*.shp) and produces a JSON array of H3 r-5 cell
-indices that intersect any GFD event polygon.
-
-Requirements: pip install google-cloud-storage fiona shapely h3
-Auth: a GCP service account with storage.objects.get on gfd_v3.
+Input: pipeline/data/reference/gfd_country_pe.csv (Task 1 output).
+Output: pipeline/data/reference/gfd_observed_countries.json.
 """
 from __future__ import annotations
 
+import csv
 import json
 import logging
-import tempfile
 from pathlib import Path
 
-import fiona
-import h3
-from google.cloud import storage
-from shapely.geometry import shape
-
-OUT_PATH = Path(__file__).resolve().parent.parent / "data" / "reference" / "gfd_observed_h3.json"
-H3_RES = 5
-BUCKET_NAME = "gfd_v3"
+IN_PATH = Path(__file__).resolve().parent.parent / "data" / "reference" / "gfd_country_pe.csv"
+OUT_PATH = Path(__file__).resolve().parent.parent / "data" / "reference" / "gfd_observed_countries.json"
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
 log = logging.getLogger(__name__)
 
 
-def collect_h3_cells(shapefile_path: Path, seen: set[str]) -> int:
-    """Walk features; add the H3 cells each polygon polyfills to `seen`."""
-    added = 0
-    with fiona.open(shapefile_path) as src:
-        for feat in src:
-            geom = shape(feat["geometry"])
-            if geom.is_empty:
-                continue
-            geojson_geom = feat["geometry"]
-            cells = h3.polygon_to_cells(
-                h3.LatLngPoly(geojson_geom["coordinates"][0])
-                if geojson_geom["type"] == "Polygon"
-                else h3.LatLngMultiPoly(*(p[0] for p in geojson_geom["coordinates"])),
-                H3_RES,
-            )
-            for c in cells:
-                if c not in seen:
-                    seen.add(c)
-                    added += 1
-    return added
-
-
 def main() -> None:
-    client = storage.Client()
-    bucket = client.bucket(BUCKET_NAME)
-    seen: set[str] = set()
-    total = 0
-    with tempfile.TemporaryDirectory() as tmp:
-        for blob in bucket.list_blobs():
-            if not blob.name.endswith(".shp"):
-                continue
-            local = Path(tmp) / Path(blob.name).name
-            blob.download_to_filename(local)
-            # Fiona reads sibling .shx, .dbf via fiona.Env but here we assume single-file tars.
-            added = collect_h3_cells(local, seen)
-            total += added
-            log.info(f"{blob.name}: +{added} cells (running total {total})")
+    iso3_list = []
+    with open(IN_PATH) as f:
+        for row in csv.DictReader(f):
+            pe = int(row["gfd_pe_2000_2018"] or 0)
+            if pe > 0:
+                iso3_list.append(row["iso3"])
+    iso3_list.sort()
 
     OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     with open(OUT_PATH, "w") as f:
-        json.dump(sorted(seen), f)
-    log.info(f"Wrote {len(seen)} H3 r-5 cells to {OUT_PATH}")
+        json.dump(iso3_list, f)
+    log.info(f"Wrote {len(iso3_list)} ISO3 codes to {OUT_PATH}")
 
 
 if __name__ == "__main__":
@@ -268,35 +240,30 @@ if __name__ == "__main__":
 
 - [ ] **Step 3: Run the script**
 
-Authenticate with GCS (`gcloud auth application-default login`) then:
-
 ```bash
-python pipeline/scripts/build_gfd_observed_h3.py
+python pipeline/scripts/build_gfd_observed_countries.py
 ```
 
-Expected terminal output: one log line per shapefile, final "Wrote N H3 r-5 cells" where `N` is between 3,000 and 15,000 (GFD covers ~2.2M km²; at 252 km²/hex, upper bound ~9,000 hexes, with edge overlap pushing it toward 10K).
+Expected: `Wrote 118 ISO3 codes to .../gfd_observed_countries.json`.
 
-If the GCS path has changed (Google rotates GFD bucket URIs occasionally), check [https://global-flood-database.cloudtostreet.ai/](https://global-flood-database.cloudtostreet.ai/) for current bucket location and update `BUCKET_NAME`.
-
-- [ ] **Step 4: Verify output shape**
+- [ ] **Step 4: Verify output**
 
 ```bash
 python3 -c "
 import json
-cells = json.load(open('pipeline/data/reference/gfd_observed_h3.json'))
-assert isinstance(cells, list), 'expected array'
-assert all(isinstance(c, str) and len(c) == 15 for c in cells), 'expected H3 string indices'
-print(f'{len(cells)} H3 r-5 cells')
+codes = json.load(open('pipeline/data/reference/gfd_observed_countries.json'))
+assert isinstance(codes, list), 'expected array'
+assert all(isinstance(c, str) and len(c) == 3 for c in codes), 'expected ISO3 strings'
+assert len(codes) >= 100 and len(codes) <= 180, f'unexpected size: {len(codes)}'
+print(f'{len(codes)} ISO3 codes')
 "
 ```
-
-Expected: `3000 < len(cells) < 15000`.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add pipeline/scripts/build_gfd_observed_h3.py pipeline/data/reference/gfd_observed_h3.json
-git commit -m "[pipeline] Build gfd_observed_h3.json from GFD event polygons"
+git add pipeline/scripts/build_gfd_observed_countries.py pipeline/data/reference/gfd_observed_countries.json
+git commit -m "[pipeline] Build gfd_observed_countries.json from Tellman 2021 country list"
 ```
 
 ---
@@ -317,7 +284,7 @@ COUNTRY_COMPARISON_JSON = FINAL / "country_comparison.json"
 REFERENCE_DIR = DATA_ROOT / "reference"
 GFD_COUNTRY_PE_CSV = REFERENCE_DIR / "gfd_country_pe.csv"
 EMDAT_COUNTRY_AFFECTED_CSV = REFERENCE_DIR / "emdat_country_affected.csv"
-GFD_OBSERVED_H3_JSON = REFERENCE_DIR / "gfd_observed_h3.json"
+GFD_OBSERVED_COUNTRIES_JSON = REFERENCE_DIR / "gfd_observed_countries.json"
 ```
 
 And update `ALL_DIRS`:
@@ -329,7 +296,7 @@ ALL_DIRS = [RAW, PROCESSED, FINAL, REFERENCE_DIR]
 - [ ] **Step 2: Verify imports still work**
 
 ```bash
-python3 -c "from pipeline.config import COUNTRY_COMPARISON_JSON, GFD_COUNTRY_PE_CSV, EMDAT_COUNTRY_AFFECTED_CSV, GFD_OBSERVED_H3_JSON; print('ok')"
+python3 -c "from pipeline.config import COUNTRY_COMPARISON_JSON, GFD_COUNTRY_PE_CSV, EMDAT_COUNTRY_AFFECTED_CSV, GFD_OBSERVED_COUNTRIES_JSON; print('ok')"
 ```
 
 Expected: `ok`.
@@ -664,13 +631,13 @@ Expected: all tests pass. If `test_output_size_under_50kb_gzipped` fails, consid
 
 ```bash
 cp pipeline/data/final/country_comparison.json public/data/country_comparison.json
-cp pipeline/data/reference/gfd_observed_h3.json public/data/gfd_observed_h3.json
+cp pipeline/data/reference/gfd_observed_countries.json public/data/gfd_observed_countries.json
 ```
 
 - [ ] **Step 6: Commit**
 
 ```bash
-git add pipeline/05c_country_comparison.py pipeline/tests/__init__.py pipeline/tests/test_country_comparison.py public/data/country_comparison.json public/data/gfd_observed_h3.json
+git add pipeline/05c_country_comparison.py pipeline/tests/__init__.py pipeline/tests/test_country_comparison.py public/data/country_comparison.json public/data/gfd_observed_countries.json
 git commit -m "[pipeline] 05c: per-country dataset comparison joiner + tests"
 ```
 
@@ -894,16 +861,19 @@ In `components/Globe.tsx`, find the block that parses `hex_compact.json` into `H
 ```ts
 // Right after hexDataRef.current = data:
 try {
-  const observedResp = await fetch("/data/gfd_observed_h3.json");
-  if (observedResp.ok) {
-    const observed: string[] = await observedResp.json();
-    const observedSet = new Set(observed);
+  const countriesResp = await fetch("/data/gfd_observed_countries.json");
+  if (countriesResp.ok) {
+    const gfdCountries: string[] = await countriesResp.json();
+    const gfdSet = new Set(gfdCountries);
     for (const hex of data) {
-      hex.isGfdObserved = observedSet.has(hex.h);
+      // isGfdObserved is country-level: any hex inside one of Tellman 2021's
+      // 118 listed countries counts as "old-map-seen". Hexes in FP but NOT
+      // in this country set (e.g. DRC, Congo, Burundi) are the "invisible".
+      hex.isGfdObserved = gfdSet.has(hex.cc);
     }
   }
 } catch (e) {
-  console.warn("gfd_observed_h3.json failed to load; dataset filter disabled", e);
+  console.warn("gfd_observed_countries.json failed to load; dataset filter disabled", e);
 }
 ```
 
@@ -929,7 +899,7 @@ const hex = document.querySelector('[data-testid="globe-host"]');
 console.log('host present:', !!hex);
 ```
 
-Load-network-tab check: `gfd_observed_h3.json` returns 200. Then stop the dev server.
+Load-network-tab check: `gfd_observed_countries.json` returns 200. Then stop the dev server.
 
 - [ ] **Step 5: Commit**
 

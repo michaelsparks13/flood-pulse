@@ -120,11 +120,11 @@ pipeline/
 pipeline/data/reference/
   gfd_country_pe.csv              # NEW — curated from Tellman 2021 supplementary
   emdat_country_affected.csv      # NEW — curated from Hu 2024 Table 1
-  gfd_observed_h3.json            # NEW — H3 r-5 cells touching any GFD event
+  gfd_observed_countries.json     # NEW — ISO3 list of 118 countries with GFD-observed PE (Tellman 2021)
 
 public/data/
   country_comparison.json         # NEW — emitted by pipeline
-  gfd_observed_h3.json            # NEW — served to the client for layer filtering
+  gfd_observed_countries.json     # NEW — served to the client for layer filtering
 
 app/compare/
   page.tsx                        # LIGHT EDIT — append one country-comparison section
@@ -144,7 +144,7 @@ lib/story/acts.ts (old content)       # replaced wholesale
 - `public/data/country_timeseries.json` (existing, FloodPulse per-country-per-year PE).
 - `pipeline/data/reference/gfd_country_pe.csv` — curated from Tellman 2021 supplementary Table S2. Columns: `iso3, gfd_pe_2000_2018, gfd_events_2000_2018`.
 - `pipeline/data/reference/emdat_country_affected.csv` — curated from Hu 2024 Table 1. Columns: `iso3, emdat_affected_2000_2022`.
-- `pipeline/data/reference/gfd_observed_h3.json` — generated once by a sub-script that reads GFD event polygons from the Tellman public GCS bucket and intersects with H3 r-5 cells.
+- `pipeline/data/reference/gfd_observed_countries.json` — ISO3 list of 118 countries with GFD-observed PE > 0, derived from Tellman 2021's `gfd_popsummary.csv` (in the cloudtostreet GitHub repo). Replaces the originally-proposed per-hex `gfd_observed_h3.json`: GFD event polygons require GCS auth, and DFO polygons (the public fallback) are catchment-scale rather than inundation-scale and cover 83% of FP's hex set — too broad to drive a "reveal" narrative. Country-level filtering is tighter, aligns with Tellman's published list, and honors the thesis more cleanly: the "invisible" hexes are entire countries the old satellite catalog never enumerated.
 
 **Output schema (`public/data/country_comparison.json`):**
 
@@ -182,7 +182,7 @@ lib/story/acts.ts (old content)       # replaced wholesale
 - FP = 0 for a country with non-zero GFD → `fp_gfd_ratio: 0`, flagged via a `notes` field at root.
 - Min denominator 1M FP PE on `top_gap_countries` to filter noise from tiny-event single-year spikes.
 
-**Size target:** `country_comparison.json` ≤ 50KB gzipped. `gfd_observed_h3.json` ≤ 80KB gzipped.
+**Size target:** `country_comparison.json` ≤ 50KB gzipped. `gfd_observed_countries.json` ≤ 2KB gzipped (~118 × 4-byte codes).
 
 ## Signature Moment — Act 2 Reveal Wipe (detail)
 
@@ -190,7 +190,7 @@ lib/story/acts.ts (old content)       # replaced wholesale
 - `layer-gfd` — `getFilterValue: d => d.isGfdObserved ? 1 : 0`. Fill: cyan `#22d3ee` at α=0.6. Always visible in Acts 1 and 2.
 - `layer-fp` — `getFilterValue: d => d.isGfdObserved ? 0 : 1`. Fill: warm orange `#ef8a62`. Opacity driven by Act 2 scroll progress.
 
-**Hex enrichment:** on initial load, each `HexDatum` gets `isGfdObserved: boolean` by looking up its H3 index in the `gfd_observed_h3.json` set. Done once, memoised. Keeps `hex_compact.json` untouched.
+**Hex enrichment:** on initial load, each `HexDatum` gets `isGfdObserved: boolean` by checking whether its country code (`hex.cc`) is in the `gfd_observed_countries.json` set. Done once, memoised. Keeps `hex_compact.json` untouched.
 
 **Scroll mechanic (scrollama progress within Act 2, 0→1):**
 - 0.00–0.15 → FP layer α = 0. First copy line visible.
@@ -224,7 +224,7 @@ lib/story/acts.ts (old content)       # replaced wholesale
 
 **Performance:**
 - `country_comparison.json` ≤ 50KB gzipped.
-- `gfd_observed_h3.json` ≤ 80KB gzipped.
+- `gfd_observed_countries.json` ≤ 2KB gzipped.
 - Dual H3 layers reuse one `hexDataRef`; only filters differ. GPU budget unchanged.
 - No new npm dependencies.
 - Lighthouse Performance targets: ≥85 desktop, ≥75 mobile.
