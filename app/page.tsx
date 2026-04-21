@@ -111,8 +111,8 @@ export default function Home() {
         visible={activeActId === "three-stories"}
       />
       <StoryProgressChip summary={summary} year={dataState.year} visible={chipVisible} />
-      <HandoffButton visible={activeActId === "handoff"} />
       <StoryContainer onActChange={handleActChange} />
+      <HandoffButton visible={activeActId === "handoff"} />
     </>
   );
 }
