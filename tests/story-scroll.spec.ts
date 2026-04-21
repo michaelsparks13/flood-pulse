@@ -239,3 +239,58 @@ test("Act 1 shows hexes at year 2000", async ({ page }) => {
   );
   expect(mapLoaded).toBe(true);
 });
+
+test("Act 7 cycles through three cities", async ({ page }) => {
+  test.setTimeout(120_000);
+  await page.goto("/");
+  await page.waitForFunction(
+    () => !!(window as unknown as { __map?: { loaded: () => boolean } }).__map,
+    { timeout: 10_000 }
+  );
+  await page.waitForTimeout(1500);
+
+  // Helper: scroll to a position within the cities act (index 6)
+  const scrollToCitiesOffset = async (frac: number) => {
+    await page.evaluate((fraction) => {
+      const section = document.querySelectorAll("[data-story-step]")[6] as HTMLElement;
+      const target = section.offsetTop + section.offsetHeight * fraction;
+      const steps = 10;
+      return new Promise<void>((resolve) => {
+        let i = 0;
+        const id = setInterval(() => {
+          i++;
+          window.scrollTo({ top: (target * i) / steps, behavior: "instant" });
+          if (i >= steps) {
+            clearInterval(id);
+            setTimeout(resolve, 400);
+          }
+        }, 80);
+      });
+    }, frac);
+    await page.waitForTimeout(2500); // allow easeTo to settle
+  };
+
+  const getLng = async () =>
+    page.evaluate(() => {
+      const map = (window as unknown as { __map?: { getCenter: () => { lng: number } } }).__map;
+      return map ? map.getCenter().lng : null;
+    });
+
+  // Near start — should target Dhaka (~90.4)
+  await scrollToCitiesOffset(0.1);
+  let lng = await getLng();
+  expect(lng).not.toBeNull();
+  expect(lng!).toBeGreaterThan(85);
+  expect(lng!).toBeLessThan(100);
+
+  // Middle — should target Jakarta (~106.8)
+  await scrollToCitiesOffset(0.5);
+  lng = await getLng();
+  expect(lng!).toBeGreaterThan(100);
+  expect(lng!).toBeLessThan(120);
+
+  // End — should target New Orleans (~-90.1)
+  await scrollToCitiesOffset(0.9);
+  lng = await getLng();
+  expect(lng!).toBeLessThan(-80);
+});
