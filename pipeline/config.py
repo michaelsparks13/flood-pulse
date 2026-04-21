@@ -42,8 +42,15 @@ HEX_COMPACT_JSON = FINAL / "hex_compact.json"
 COUNTRY_TIMESERIES_JSON = FINAL / "country_timeseries.json"
 GLOBAL_SUMMARY_JSON = FINAL / "global_summary.json"
 COMPARISON_JSON = FINAL / "comparison.json"
+COUNTRY_COMPARISON_JSON = FINAL / "country_comparison.json"
 
-ALL_DIRS = [RAW, PROCESSED, FINAL]
+# Reference data (curated / derived)
+REFERENCE_DIR = DATA_ROOT / "reference"
+GFD_COUNTRY_PE_CSV = REFERENCE_DIR / "gfd_country_pe.csv"
+EMDAT_COUNTRY_AFFECTED_CSV = REFERENCE_DIR / "emdat_country_affected.csv"
+GFD_OBSERVED_COUNTRIES_JSON = REFERENCE_DIR / "gfd_observed_countries.json"
+
+ALL_DIRS = [RAW, PROCESSED, FINAL, REFERENCE_DIR]
 
 
 def ensure_dirs() -> None:
