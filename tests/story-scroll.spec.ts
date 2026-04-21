@@ -118,13 +118,14 @@ test("Act 5 renders two filtered hex layers", async ({ page }) => {
   );
   await page.waitForTimeout(1500);
 
-  // Scroll the Act 5 section (index 4) into view using its DOM node. This avoids
-  // fragile pixel math — scrollama's scroll listener fires as the page animates.
+  // Scroll the Act 5 section (index 4) to the viewport center so scrollama's
+  // offset:0.6 reliably activates "compare" and not the next act. Stepwise
+  // scroll so scrollama processes intermediate acts instead of skipping.
   await page.evaluate(() => {
     const section = document.querySelectorAll("[data-story-step]")[4] as HTMLElement;
-    // Stepwise scroll so scrollama processes each intermediate act instead of
-    // skipping straight from Act 1 to Act 5.
-    const target = section.offsetTop + 200;
+    // Aim for 30% into the section — safely past scrollama's activation
+    // threshold and well before Act 6 starts triggering.
+    const target = section.offsetTop + section.offsetHeight * 0.3;
     const steps = 8;
     return new Promise<void>((resolve) => {
       let i = 0;
