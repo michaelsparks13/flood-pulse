@@ -49,7 +49,7 @@ export const KHULNA_HEX: CameraKeyframe = {
 // Act 7 — first of three-city sequence
 export const DHAKA: CameraKeyframe = {
   center: [90.4, 23.8],
-  zoom: 6.5,
+  zoom: 5.8,
   pitch: 25,
   bearing: 0,
   duration: 2500,
@@ -58,7 +58,7 @@ export const DHAKA: CameraKeyframe = {
 // Act 7 — second of three-city sequence
 export const JAKARTA: CameraKeyframe = {
   center: [106.8, -6.2],
-  zoom: 6.5,
+  zoom: 5.8,
   pitch: 25,
   bearing: 0,
   duration: 2500,
@@ -67,7 +67,7 @@ export const JAKARTA: CameraKeyframe = {
 // Act 7 — third of three-city sequence
 export const NEW_ORLEANS: CameraKeyframe = {
   center: [-90.1, 29.95],
-  zoom: 6.5,
+  zoom: 5.8,
   pitch: 25,
   bearing: 0,
   duration: 2500,

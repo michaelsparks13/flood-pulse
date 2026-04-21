@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { MapboxOverlay } from "@deck.gl/mapbox";
@@ -82,12 +82,6 @@ export default function Globe({
   const popupRef = useRef<maplibregl.Popup | null>(null);
   const flyInDoneRef = useRef(false);
 
-  const [pulseTick, setPulseTick] = useState(0);
-  useEffect(() => {
-    if (!highlightHex) return;
-    const id = setInterval(() => setPulseTick((t) => t + 1), 60);
-    return () => clearInterval(id);
-  }, [highlightHex]);
 
   // Fetch compact hex data once on mount (shared across route transitions)
   useEffect(() => {
@@ -429,27 +423,6 @@ export default function Globe({
       layers = [before, after];
     } else {
       layers = [layer];
-      if (highlightHex) {
-        const phase = (performance.now() / 1000) % 1.0;
-        const pulseAlpha = 120 + Math.round(Math.sin(phase * 2 * Math.PI) * 80);
-        layers.push(
-          new (H3HexagonLayer as any)({
-            id: "h3-pulse",
-            data: [{ h: highlightHex }],
-            getHexagon: (d: { h: string }) => d.h,
-            getFillColor: [252, 255, 164, pulseAlpha],
-            filled: true,
-            stroked: true,
-            getLineColor: [252, 255, 164, 230],
-            getLineWidth: 2,
-            lineWidthUnits: "pixels",
-            pickable: false,
-            updateTriggers: {
-              getFillColor: [phase],
-            },
-          })
-        );
-      }
     }
 
     if (!overlayRef.current) {
@@ -468,7 +441,51 @@ export default function Globe({
       // readiness callback so consuming pages can unblock their UI.
       onDataReady?.();
     }
-  }, [dataReady, year, mapMode, hexOpacity, basemapReady, highlightHex, pulseTick, splitCompare, confidenceMode, dividerX]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [dataReady, year, mapMode, hexOpacity, basemapReady, highlightHex, splitCompare, confidenceMode, dividerX]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Pulse layer animation — runs independently of the main layer effect
+  // so 30k hexes don't get rebuilt every frame.
+  useEffect(() => {
+    if (!highlightHex) return;
+    const overlay = overlayRef.current;
+    if (!overlay) return;
+
+    let rafId: number | null = null;
+    const tick = () => {
+      const phase = (performance.now() / 1000) % 1.0;
+      const pulseAlpha = 120 + Math.round(Math.sin(phase * 2 * Math.PI) * 80);
+      const pulseLayer = new (H3HexagonLayer as any)({
+        id: "h3-pulse",
+        data: [{ h: highlightHex }],
+        getHexagon: (d: { h: string }) => d.h,
+        getFillColor: [252, 255, 164, pulseAlpha],
+        filled: true,
+        stroked: true,
+        getLineColor: [252, 255, 164, 230],
+        getLineWidth: 2,
+        lineWidthUnits: "pixels",
+        pickable: false,
+        updateTriggers: { getFillColor: [phase] },
+      });
+      // Read the current base layers from the overlay and append the pulse.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const overlayProps = (overlay as unknown as { props?: { layers?: any[] } }).props;
+      if (!overlayProps) { rafId = requestAnimationFrame(tick); return; }
+      const baseLayers = (overlayProps.layers ?? []).filter((l: any) => l?.id !== "h3-pulse");
+      overlay.setProps({ layers: [...baseLayers, pulseLayer] });
+      rafId = requestAnimationFrame(tick);
+    };
+    rafId = requestAnimationFrame(tick);
+    return () => {
+      if (rafId != null) cancelAnimationFrame(rafId);
+      // Clear the pulse from the overlay on unmount / highlightHex change
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const overlayProps = (overlay as unknown as { props?: { layers?: any[] } }).props;
+      if (!overlayProps) return;
+      const baseLayers = (overlayProps.layers ?? []).filter((l: any) => l?.id !== "h3-pulse");
+      overlay.setProps({ layers: baseLayers });
+    };
+  }, [highlightHex]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Toggle country boundaries
   useEffect(() => {

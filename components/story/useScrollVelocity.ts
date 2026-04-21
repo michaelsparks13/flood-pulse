@@ -1,25 +1,29 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 
 /**
- * Returns a smoothed scroll velocity in px/ms (positive = scrolling down).
- * Updates via requestAnimationFrame; EMA-smoothed with alpha 0.15. Decays
- * to zero naturally when scrolling stops (empty-velocity samples blend toward 0).
+ * Starts an rAF-driven scroll velocity calculator and calls `onUpdate` with
+ * a smoothed px/ms velocity on every frame. Avoids React state to prevent
+ * per-frame re-renders of consumers.
  *
- * Disables on devices with fewer than 4 logical cores (rough proxy for weak
- * mobile hardware) — returns a constant 0 in that case.
+ * Short-circuits (no rAF loop) on reduced-motion preference or low-core
+ * hardware — consumers should treat absence of calls as "velocity = 0".
  */
-export function useScrollVelocity(): number {
-  const [velocity, setVelocity] = useState(0);
+export function useScrollVelocity(
+  onUpdate: (velocity: number) => void,
+  enabled: boolean = true
+): void {
   const lastY = useRef(0);
   const lastT = useRef(0);
+  const velocityRef = useRef(0);
   const rafId = useRef<number | null>(null);
+  const cbRef = useRef(onUpdate);
+  cbRef.current = onUpdate;
 
   useEffect(() => {
-    if (typeof navigator !== "undefined" && (navigator.hardwareConcurrency ?? 8) < 4) {
-      return;
-    }
+    if (!enabled) return;
+    if (typeof navigator !== "undefined" && (navigator.hardwareConcurrency ?? 8) < 4) return;
     const reducedMotion =
       typeof window !== "undefined" &&
       window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -33,16 +37,15 @@ export function useScrollVelocity(): number {
       const dt = now - lastT.current;
       const dy = window.scrollY - lastY.current;
       const v = dt > 0 ? dy / dt : 0;
-      setVelocity((prev) => prev * 0.85 + v * 0.15);
+      velocityRef.current = velocityRef.current * 0.85 + v * 0.15;
       lastY.current = window.scrollY;
       lastT.current = now;
+      cbRef.current(velocityRef.current);
       rafId.current = requestAnimationFrame(tick);
     };
     rafId.current = requestAnimationFrame(tick);
     return () => {
       if (rafId.current != null) cancelAnimationFrame(rafId.current);
     };
-  }, []);
-
-  return velocity;
+  }, [enabled]);
 }

@@ -240,13 +240,8 @@ test("Act 1 shows hexes at year 2000", async ({ page }) => {
   expect(mapLoaded).toBe(true);
 });
 
-// Flaky under real timing — scroll-velocity bearing + multi-act easeTo
-// queue can take >2min to settle across all three cities. Verified manually
-// in the browser and in isolated Task 12 runs. Re-enable once per-step
-// progress handling becomes more deterministic (potentially by pausing
-// the bearing effect during act transitions).
 test.skip("Act 7 cycles through three cities", async ({ page }) => {
-  test.setTimeout(180_000);
+  test.setTimeout(300_000);
   await page.goto("/");
   await page.waitForFunction(
     () => !!(window as unknown as { __map?: { loaded: () => boolean } }).__map,
@@ -254,70 +249,135 @@ test.skip("Act 7 cycles through three cities", async ({ page }) => {
   );
   await page.waitForTimeout(1500);
 
-  // Helper: scroll to a position within the cities act (index 6)
-  // Stepwise scrolls via repeated page.evaluate calls instead of one long
-  // setInterval-in-the-page promise — the latter can exceed Playwright's
-  // 30s default page.evaluate timeout during heavy easeTo animation.
-  const scrollToCitiesOffset = async (frac: number) => {
-    const target = await page.evaluate((fraction) => {
-      const section = document.querySelectorAll("[data-story-step]")[6] as HTMLElement;
-      return section.offsetTop + section.offsetHeight * fraction;
-    }, frac);
-    const steps = 8;
-    for (let i = 1; i <= steps; i++) {
-      await page.evaluate((y) => window.scrollTo({ top: y, behavior: "instant" }), (target * i) / steps);
-      await page.waitForTimeout(80);
-    }
-    await page.waitForTimeout(3500); // allow easeTo to settle
-  };
+  // Wait until all 9 story steps are in the DOM before proceeding.
+  await page.waitForFunction(
+    () => document.querySelectorAll("[data-story-step]").length >= 9,
+    { timeout: 10_000 }
+  );
 
-  const getLng = async () =>
-    page.evaluate(() => {
+  // Run the entire Act 7 city cycle verification inside a single page.evaluate.
+  // This avoids multiple CDP round-trips that can stall behind deck.gl's per-frame
+  // readPixels GPU calls in headless Chromium. The promise resolves once all three
+  // cities have been reached, or rejects with an error message on timeout.
+  //
+  // Important: scrollama's progress calculation accounts for its `offset: 0.6`
+  // setting. The formula is:
+  //   progress = (scrollY - (sectionTop - offset * viewportH)) / sectionHeight
+  // So to land at scrollama-progress P:
+  //   scrollY = sectionTop - offset * viewportH + P * sectionHeight
+  //
+  // City idx thresholds:
+  //   idx=0 (Dhaka):      progress in [0, 0.333)  → target P=0.15
+  //   idx=1 (Jakarta):    progress in [0.333,0.667)→ target P=0.45
+  //   idx=2 (New Orleans):progress in [0.667, 1.0) → target P=0.80
+  const result = await page.evaluate(() => {
+    return new Promise<{ ok: boolean; cities: number[] }>((resolve, reject) => {
       const map = (window as unknown as { __map?: { getCenter: () => { lng: number } } }).__map;
-      return map ? map.getCenter().lng : null;
+      if (!map) { reject(new Error("map not found")); return; }
+
+      const section = document.querySelectorAll("[data-story-step]")[6] as HTMLElement;
+      if (!section) { reject(new Error("cities section not found")); return; }
+
+      const sectionTop = section.offsetTop;
+      const sectionHeight = section.offsetHeight;
+      // scrollama offset=0.6 means enter/exit threshold is 60% down viewport
+      const offsetPx = 0.6 * window.innerHeight;
+      const enterScrollY = sectionTop - offsetPx;
+      const getLng = () => map.getCenter().lng;
+
+      const cities: number[] = [];
+
+      // Compute scroll target for a given scrollama progress P
+      const targetForProgress = (p: number) => enterScrollY + p * sectionHeight;
+
+      // Step 1: scroll to scrollama-progress 0.15 (Dhaka territory, idx=0)
+      const scroll1 = () => {
+        const target = targetForProgress(0.15);
+        window.scrollTo({ top: 0, behavior: "instant" });
+        let i = 0; const steps = 8;
+        const id = setInterval(() => {
+          i++;
+          window.scrollTo({ top: (target * i) / steps, behavior: "instant" });
+          if (i >= steps) { clearInterval(id); setTimeout(waitDhaka, 400); }
+        }, 80);
+      };
+
+      // Wait up to 30s for Dhaka (lng 80–105)
+      const waitDhaka = () => {
+        const start = performance.now();
+        const check = () => {
+          const lng = getLng();
+          if (lng > 80 && lng < 105) { cities.push(lng); scroll2(); }
+          else if (performance.now() - start > 30000) { reject(new Error(`Dhaka timeout lng=${lng}`)); }
+          else { requestAnimationFrame(check); }
+        };
+        requestAnimationFrame(check);
+      };
+
+      // Step 2: scroll to scrollama-progress 0.45 (Jakarta territory, idx=1)
+      const scroll2 = () => {
+        const target = targetForProgress(0.45);
+        const from = window.scrollY;
+        const delta = target - from;
+        let i = 0; const steps = 8;
+        const id = setInterval(() => {
+          i++;
+          window.scrollTo({ top: from + (delta * i) / steps, behavior: "instant" });
+          if (i >= steps) { clearInterval(id); setTimeout(waitJakarta, 400); }
+        }, 80);
+      };
+
+      // Wait up to 30s for Jakarta (lng 95–120)
+      const waitJakarta = () => {
+        const start = performance.now();
+        const check = () => {
+          const lng = getLng();
+          if (lng > 95 && lng < 120) { cities.push(lng); scroll3(); }
+          else if (performance.now() - start > 30000) { reject(new Error(`Jakarta timeout lng=${lng}`)); }
+          else { requestAnimationFrame(check); }
+        };
+        requestAnimationFrame(check);
+      };
+
+      // Step 3: scroll to scrollama-progress 0.80 (New Orleans territory, idx=2)
+      const scroll3 = () => {
+        const target = targetForProgress(0.80);
+        const from = window.scrollY;
+        const delta = target - from;
+        let i = 0; const steps = 8;
+        const id = setInterval(() => {
+          i++;
+          window.scrollTo({ top: from + (delta * i) / steps, behavior: "instant" });
+          if (i >= steps) { clearInterval(id); setTimeout(waitNewOrleans, 400); }
+        }, 80);
+      };
+
+      // Wait up to 30s for New Orleans (lng < -80)
+      const waitNewOrleans = () => {
+        const start = performance.now();
+        const check = () => {
+          const lng = getLng();
+          if (lng < -80) { cities.push(lng); resolve({ ok: true, cities }); }
+          else if (performance.now() - start > 30000) { reject(new Error(`NewOrleans timeout lng=${lng}`)); }
+          else { requestAnimationFrame(check); }
+        };
+        requestAnimationFrame(check);
+      };
+
+      scroll1();
     });
+  });
 
-  // Each easeTo takes time to land; the scroll-velocity bearing effect also
-  // perturbs the camera. Wait for the longitude to enter the expected city's
-  // range instead of a fixed sleep.
-
+  expect(result.ok).toBe(true);
+  expect(result.cities).toHaveLength(3);
   // Dhaka
-  await scrollToCitiesOffset(0.1);
-  await page.waitForFunction(
-    () => {
-      const m = (window as unknown as { __map?: { getCenter: () => { lng: number } } }).__map;
-      return !!m && m.getCenter().lng > 80 && m.getCenter().lng < 105;
-    },
-    { timeout: 15_000 }
-  );
-  let lng = await getLng();
-  expect(lng!).toBeGreaterThan(80);
-  expect(lng!).toBeLessThan(105);
-
+  expect(result.cities[0]).toBeGreaterThan(80);
+  expect(result.cities[0]).toBeLessThan(105);
   // Jakarta
-  await scrollToCitiesOffset(0.5);
-  await page.waitForFunction(
-    () => {
-      const m = (window as unknown as { __map?: { getCenter: () => { lng: number } } }).__map;
-      return !!m && m.getCenter().lng > 95 && m.getCenter().lng < 120;
-    },
-    { timeout: 15_000 }
-  );
-  lng = await getLng();
-  expect(lng!).toBeGreaterThan(95);
-  expect(lng!).toBeLessThan(120);
-
+  expect(result.cities[1]).toBeGreaterThan(95);
+  expect(result.cities[1]).toBeLessThan(120);
   // New Orleans
-  await scrollToCitiesOffset(0.9);
-  await page.waitForFunction(
-    () => {
-      const m = (window as unknown as { __map?: { getCenter: () => { lng: number } } }).__map;
-      return !!m && m.getCenter().lng < -80;
-    },
-    { timeout: 15_000 }
-  );
-  lng = await getLng();
-  expect(lng!).toBeLessThan(-80);
+  expect(result.cities[2]).toBeLessThan(-80);
 });
 
 test("Act 8 switches to frequency mode", async ({ page }) => {

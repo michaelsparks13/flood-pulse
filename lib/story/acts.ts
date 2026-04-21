@@ -17,7 +17,6 @@ export const ACTS: ActDefinition[] = [
     copy: "Every four years, the number of people living in flooded places doubles.",
     camera: GLOBE_HOME,
     data: { year: 2000, mapMode: "exposure", hexOpacity: 0.3 },
-    progressDriven: true,
   },
   {
     id: "counter",

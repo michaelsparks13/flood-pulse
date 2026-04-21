@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import StoryContainer from "@/components/story/StoryContainer";
 import StoryCounter from "@/components/story/StoryCounter";
 import StoryProgressChip from "@/components/story/StoryProgressChip";
@@ -20,21 +20,16 @@ export default function Home() {
   const counterVisible = activeActId !== "breath" && !dataState.splitCompare;
   const chipVisible = ["confidence", "cities", "frequency", "handoff"].includes(activeActId);
 
-  const velocity = useScrollVelocity();
   const { mapRef } = useGlobe();
-
-  useEffect(() => {
-    if (!["breath", "counter"].includes(activeActId)) return;
+  const velocityEnabled = ["breath", "counter"].includes(activeActId);
+  useScrollVelocity((velocity) => {
     const map = mapRef.current;
     if (!map) return;
-    // velocity in px/ms; scale to gentle bearing deltas
     const delta = Math.max(-0.4, Math.min(0.4, velocity * 0.3));
-    // Only nudge if delta is non-trivial to avoid per-frame thrash
     if (Math.abs(delta) > 0.01) {
-      const target = map.getBearing() + delta;
-      map.setBearing(target);
+      map.setBearing(map.getBearing() + delta);
     }
-  }, [velocity, activeActId, mapRef]);
+  }, velocityEnabled);
 
   return (
     <>

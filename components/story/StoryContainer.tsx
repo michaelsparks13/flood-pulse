@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import scrollama from "scrollama";
 import { Act } from "./Act";
 import { ACTS, CITY_SEQUENCE } from "@/lib/story/acts";
@@ -14,6 +14,7 @@ export default function StoryContainer({ onActChange }: StoryContainerProps) {
   const [activeAct, setActiveAct] = useState<string>(ACTS[0].id);
   const [progressById, setProgressById] = useState<Record<string, number>>({});
   const { flyTo } = useCameraChoreographer();
+  const lastCityIdxRef = useRef<number>(-1);
 
   useEffect(() => {
     const scroller = scrollama();
@@ -26,6 +27,9 @@ export default function StoryContainer({ onActChange }: StoryContainerProps) {
       .onStepEnter((res) => {
         const id = res.element.getAttribute("data-story-step")!;
         setActiveAct(id);
+        if (id === "cities") {
+          lastCityIdxRef.current = -1;
+        }
         const act = ACTS.find((a) => a.id === id);
         if (act) flyTo(act.camera);
         onActChange?.(id, 0);
@@ -40,7 +44,10 @@ export default function StoryContainer({ onActChange }: StoryContainerProps) {
             CITY_SEQUENCE.length - 1,
             Math.floor(res.progress * CITY_SEQUENCE.length)
           );
-          flyTo(CITY_SEQUENCE[idx]);
+          if (idx !== lastCityIdxRef.current) {
+            lastCityIdxRef.current = idx;
+            flyTo(CITY_SEQUENCE[idx]);
+          }
         }
         onActChange?.(id, res.progress);
       });
