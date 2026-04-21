@@ -330,3 +330,48 @@ test("Act 8 switches to frequency mode", async ({ page }) => {
   );
   await expect(page.getByText(/getting worse/i)).toBeVisible();
 });
+
+test("Act 9 handoff navigates to /explore", async ({ page }) => {
+  test.setTimeout(120_000);
+  await page.goto("/");
+  await page.waitForFunction(
+    () => !!(window as unknown as { __map?: { loaded: () => boolean } }).__map,
+    { timeout: 10_000 }
+  );
+  await page.waitForTimeout(1500);
+
+  // Scroll to Act 9 — index 8 in the ACTS array
+  await page.evaluate(() => {
+    const section = document.querySelectorAll("[data-story-step]")[8] as HTMLElement;
+    const target = section.offsetTop + section.offsetHeight * 0.5;
+    const steps = 10;
+    return new Promise<void>((resolve) => {
+      let i = 0;
+      const id = setInterval(() => {
+        i++;
+        window.scrollTo({ top: (target * i) / steps, behavior: "instant" });
+        if (i >= steps) {
+          clearInterval(id);
+          setTimeout(resolve, 400);
+        }
+      }, 80);
+    });
+  });
+  await page.waitForTimeout(2000);
+
+  await expect(page.locator('[data-testid="active-act"]')).toHaveAttribute(
+    "data-act-id",
+    "handoff",
+    { timeout: 10_000 }
+  );
+
+  // Button is visible
+  const btn = page.getByRole("button", { name: /take control/i });
+  await expect(btn).toBeVisible();
+  await btn.click();
+
+  // Navigates to /explore
+  await page.waitForURL("**/explore");
+  // Explorer chrome is visible
+  await expect(page.locator('[data-testid="info-panel"]')).toBeVisible({ timeout: 10_000 });
+});
