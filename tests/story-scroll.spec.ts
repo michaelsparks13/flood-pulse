@@ -375,3 +375,46 @@ test("Act 9 handoff navigates to /explore", async ({ page }) => {
   // Explorer chrome is visible
   await expect(page.locator('[data-testid="info-panel"]')).toBeVisible({ timeout: 10_000 });
 });
+
+test("Story progress chip visible from Act 6 onward", async ({ page }) => {
+  test.setTimeout(120_000);
+  await page.goto("/");
+  await page.waitForFunction(
+    () => !!(window as unknown as { __map?: { loaded: () => boolean } }).__map,
+    { timeout: 10_000 }
+  );
+  await page.waitForTimeout(1500);
+
+  // Chip hidden on Act 1
+  const svg = page.locator('svg[viewBox="0 0 100 40"]').first();
+  // It should render in DOM but be opacity-0
+  // Scroll to Act 6
+  await page.evaluate(() => {
+    const section = document.querySelectorAll("[data-story-step]")[5] as HTMLElement;
+    const target = section.offsetTop + section.offsetHeight * 0.3;
+    const steps = 10;
+    return new Promise<void>((resolve) => {
+      let i = 0;
+      const id = setInterval(() => {
+        i++;
+        window.scrollTo({ top: (target * i) / steps, behavior: "instant" });
+        if (i >= steps) {
+          clearInterval(id);
+          setTimeout(resolve, 400);
+        }
+      }, 80);
+    });
+  });
+  await page.waitForTimeout(2000);
+
+  await expect(page.locator('[data-testid="active-act"]')).toHaveAttribute(
+    "data-act-id",
+    "confidence",
+    { timeout: 10_000 }
+  );
+
+  // The chip's SVG should be visible at this point
+  await expect(svg).toBeVisible();
+  // And the range-line text
+  await expect(page.getByText(/2000 — 20\d\d — 2026/)).toBeVisible();
+});
