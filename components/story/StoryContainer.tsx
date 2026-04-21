@@ -53,6 +53,33 @@ export default function StoryContainer({ onActChange }: StoryContainerProps) {
     };
   }, [flyTo, onActChange]);
 
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (!["ArrowDown", "ArrowUp"].includes(e.key)) return;
+      // Don't hijack if user is typing in a form field
+      const tag = (e.target as HTMLElement | null)?.tagName?.toLowerCase();
+      if (tag === "input" || tag === "textarea") return;
+
+      const steps = Array.from(document.querySelectorAll("[data-story-step]"));
+      const currentIdx = steps.findIndex(
+        (s) => s.getAttribute("data-story-step") === activeAct
+      );
+      if (currentIdx === -1) return;
+      const nextIdx = Math.max(
+        0,
+        Math.min(steps.length - 1, currentIdx + (e.key === "ArrowDown" ? 1 : -1))
+      );
+      if (nextIdx === currentIdx) return;
+      (steps[nextIdx] as HTMLElement).scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+      e.preventDefault();
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [activeAct]);
+
   return (
     <div className="relative z-10">
       {ACTS.map((act) => (

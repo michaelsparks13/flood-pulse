@@ -38,6 +38,12 @@ export default function Home() {
 
   return (
     <>
+      <a
+        href="/explore"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:bg-panel focus:text-text-primary focus:px-3 focus:py-2 focus:rounded focus:border focus:border-border focus:outline-none"
+      >
+        Skip to interactive explorer
+      </a>
       <Globe
         year={dataState.year}
         mapMode={dataState.mapMode}

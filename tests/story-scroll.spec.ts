@@ -376,6 +376,39 @@ test("Act 9 handoff navigates to /explore", async ({ page }) => {
   await expect(page.locator('[data-testid="info-panel"]')).toBeVisible({ timeout: 10_000 });
 });
 
+test("skip link is focusable and navigates to /explore", async ({ page }) => {
+  await page.goto("/");
+  // First tab should land on the skip link (should be first focusable element)
+  await page.keyboard.press("Tab");
+  const activeText = await page.evaluate(() => document.activeElement?.textContent);
+  expect(activeText?.toLowerCase()).toContain("skip to interactive explorer");
+
+  await page.keyboard.press("Enter");
+  await page.waitForURL("**/explore");
+  await expect(page.locator('[data-testid="info-panel"]')).toBeVisible({ timeout: 10_000 });
+});
+
+test("arrow keys advance through acts", async ({ page }) => {
+  test.setTimeout(90_000);
+  await page.goto("/");
+  await page.waitForFunction(
+    () => !!(window as unknown as { __map?: { loaded: () => boolean } }).__map,
+    { timeout: 10_000 }
+  );
+  await page.waitForTimeout(1500);
+
+  // Start: breath
+  await expect(page.locator('[data-testid="active-act"]')).toHaveAttribute("data-act-id", "breath");
+
+  // Arrow down once
+  await page.keyboard.press("ArrowDown");
+  await page.waitForTimeout(1200); // smooth scrollIntoView + scrollama propagation
+
+  // Accept either counter or a slightly further act depending on scroll timing
+  const next = await page.locator('[data-testid="active-act"]').getAttribute("data-act-id");
+  expect(["counter", "where"]).toContain(next);
+});
+
 test("Story progress chip visible from Act 6 onward", async ({ page }) => {
   test.setTimeout(120_000);
   await page.goto("/");
