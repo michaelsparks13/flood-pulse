@@ -294,3 +294,39 @@ test("Act 7 cycles through three cities", async ({ page }) => {
   lng = await getLng();
   expect(lng!).toBeLessThan(-80);
 });
+
+test("Act 8 switches to frequency mode", async ({ page }) => {
+  test.setTimeout(120_000);
+  await page.goto("/");
+  await page.waitForFunction(
+    () => !!(window as unknown as { __map?: { loaded: () => boolean } }).__map,
+    { timeout: 10_000 }
+  );
+  await page.waitForTimeout(1500);
+
+  // Scroll to Act 8 — index 7 in the ACTS array
+  await page.evaluate(() => {
+    const section = document.querySelectorAll("[data-story-step]")[7] as HTMLElement;
+    const target = section.offsetTop + section.offsetHeight * 0.3;
+    const steps = 10;
+    return new Promise<void>((resolve) => {
+      let i = 0;
+      const id = setInterval(() => {
+        i++;
+        window.scrollTo({ top: (target * i) / steps, behavior: "instant" });
+        if (i >= steps) {
+          clearInterval(id);
+          setTimeout(resolve, 400);
+        }
+      }, 80);
+    });
+  });
+  await page.waitForTimeout(2000);
+
+  await expect(page.locator('[data-testid="active-act"]')).toHaveAttribute(
+    "data-act-id",
+    "frequency",
+    { timeout: 10_000 }
+  );
+  await expect(page.getByText(/getting worse/i)).toBeVisible();
+});
