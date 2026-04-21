@@ -125,3 +125,25 @@ export function getExposureRGBA(population: number): [number, number, number] {
 export function getFrequencyRGBA(trend: number): [number, number, number] {
   return interpolateRGBA(trend, FREQUENCY_RGBA_STOPS);
 }
+
+/**
+ * Blends the exposure RGBA with a neutral gray based on a confidence score
+ * derived from months flooded. More months = higher confidence = sharper
+ * color; single-event hexes fade toward gray.
+ *
+ * Confidence curve: log2(months+1) / log2(24) — 1 month ≈ 0.22, 6 months ≈ 0.57,
+ * 24+ months saturates at 1.0.
+ */
+export function getConfidenceBlendedRGBA(
+  population: number,
+  months: number
+): [number, number, number] {
+  const [r, g, b] = getExposureRGBA(population);
+  const conf = Math.min(1, Math.log2(Math.max(1, months)) / Math.log2(24));
+  const gray: [number, number, number] = [80, 80, 90];
+  return [
+    Math.round(r * conf + gray[0] * (1 - conf)),
+    Math.round(g * conf + gray[1] * (1 - conf)),
+    Math.round(b * conf + gray[2] * (1 - conf)),
+  ];
+}

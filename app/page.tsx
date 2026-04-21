@@ -26,6 +26,7 @@ export default function Home() {
         hexOpacity={dataState.hexOpacity}
         highlightHex={dataState.highlightHex}
         splitCompare={!!dataState.splitCompare}
+        confidenceMode={!!dataState.confidenceMode}
         dividerX={dividerX}
       />
       <FogMask active={!!dataState.fogMask} />

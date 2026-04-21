@@ -178,6 +178,43 @@ test("Act 5 renders two filtered hex layers", async ({ page }) => {
   }
 });
 
+test("Act 6 confidence mode activates with copy visible", async ({ page }) => {
+  test.setTimeout(90_000);
+  await page.goto("/");
+  await page.waitForFunction(
+    () => !!(window as unknown as { __map?: { loaded: () => boolean } }).__map,
+    { timeout: 10_000 }
+  );
+  await page.waitForTimeout(1500);
+
+  // Scroll to Act 6 — index 5 in the ACTS array
+  await page.evaluate(() => {
+    const section = document.querySelectorAll("[data-story-step]")[5] as HTMLElement;
+    const target = section.offsetTop + section.offsetHeight * 0.3;
+    const steps = 8;
+    return new Promise<void>((resolve) => {
+      let i = 0;
+      const id = setInterval(() => {
+        i++;
+        window.scrollTo({ top: (target * i) / steps, behavior: "instant" });
+        if (i >= steps) {
+          clearInterval(id);
+          setTimeout(resolve, 400);
+        }
+      }, 80);
+    });
+  });
+  await page.waitForTimeout(1500);
+
+  await expect(page.locator('[data-testid="active-act"]')).toHaveAttribute(
+    "data-act-id",
+    "confidence",
+    { timeout: 10_000 }
+  );
+  // Copy substring
+  await expect(page.getByText(/equally certain/i)).toBeVisible();
+});
+
 test("Act 1 shows hexes at year 2000", async ({ page }) => {
   await page.goto("/");
   await page.waitForFunction(

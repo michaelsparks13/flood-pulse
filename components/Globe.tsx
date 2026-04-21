@@ -7,7 +7,7 @@ import { MapboxOverlay } from "@deck.gl/mapbox";
 import { H3HexagonLayer } from "@deck.gl/geo-layers";
 import { DataFilterExtension } from "@deck.gl/extensions";
 import type { MapMode, HexDatum, HexCompactJSON } from "@/lib/types";
-import { getExposureRGBA, getFrequencyRGBA } from "@/lib/colors";
+import { getExposureRGBA, getFrequencyRGBA, getConfidenceBlendedRGBA } from "@/lib/colors";
 import { useGlobe } from "@/context/GlobeContext";
 
 function formatPopulation(n: number): string {
@@ -46,6 +46,7 @@ interface GlobeProps {
   hexOpacity?: number;
   highlightHex?: string;
   splitCompare?: boolean;
+  confidenceMode?: boolean;
   /** Screen-space X position of the divider (0..1, relative to viewport width). Default 0.5. */
   dividerX?: number;
   onBasemapReady?: () => void;
@@ -62,6 +63,7 @@ export default function Globe({
   hexOpacity = 0.9,
   highlightHex,
   splitCompare = false,
+  confidenceMode = false,
   dividerX = 0.5,
   onBasemapReady,
   onDataReady,
@@ -273,6 +275,8 @@ export default function Globe({
     const colorFn =
       mapMode === "frequency"
         ? (d: HexDatum) => getFrequencyRGBA(d.ft)
+        : confidenceMode
+        ? (d: HexDatum) => getConfidenceBlendedRGBA(d.p, d.m)
         : (d: HexDatum) => getExposureRGBA(d.p);
 
     const alpha = Math.round(hexOpacity * 255);
@@ -299,7 +303,7 @@ export default function Globe({
       filterRange: [0, year],
 
       updateTriggers: {
-        getFillColor: [mapMode, hexOpacity],
+        getFillColor: [mapMode, hexOpacity, confidenceMode],
       },
 
       onHover: (info: any) => {
@@ -464,7 +468,7 @@ export default function Globe({
       // readiness callback so consuming pages can unblock their UI.
       onDataReady?.();
     }
-  }, [dataReady, year, mapMode, hexOpacity, basemapReady, highlightHex, pulseTick, splitCompare, dividerX]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [dataReady, year, mapMode, hexOpacity, basemapReady, highlightHex, pulseTick, splitCompare, confidenceMode, dividerX]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Toggle country boundaries
   useEffect(() => {
