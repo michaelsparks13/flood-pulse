@@ -17,7 +17,8 @@ import {
   BarChart,
   LineChart,
 } from "recharts";
-import type { ComparisonData } from "@/lib/types";
+import type { ComparisonData, CountryComparisonData } from "@/lib/types";
+import { loadCountryComparison, allCountriesByRatio } from "@/lib/story/countryComparison";
 
 function fmt(value: number | null): string {
   if (value == null) return "-";
@@ -63,6 +64,7 @@ function Section({
 
 export default function ComparePage() {
   const [data, setData] = useState<ComparisonData | null>(null);
+  const [country, setCountry] = useState<CountryComparisonData | null>(null);
   const [useLog, setUseLog] = useState(false);
 
   useEffect(() => {
@@ -70,6 +72,7 @@ export default function ComparePage() {
       .then((r) => r.json())
       .then(setData)
       .catch(console.error);
+    loadCountryComparison().then(setCountry).catch(console.error);
   }, []);
 
   // ---- Chart data ----
@@ -549,6 +552,48 @@ export default function ComparePage() {
             </ResponsiveContainer>
           </div>
         </Section>
+
+        {/* 4b. Country-level gap */}
+        {country && (
+          <Section title="Where the gap is biggest">
+            <p className="text-[10px] text-text-tertiary/60 mb-3">
+              Top 20 countries by FP/GFD cumulative-PE ratio (2000&ndash;2018). Minimum FloodPulse denominator: 1M PE.
+              EM-DAT column is 2000&ndash;2022 and measures &ldquo;affected&rdquo; (broader than &ldquo;exposed&rdquo;) &mdash; treat as secondary.
+            </p>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-border text-text-tertiary">
+                    <th className="text-left py-2 pr-4 font-medium">Country</th>
+                    <th className="text-right py-2 pr-4 font-medium">Ground Source PE</th>
+                    <th className="text-right py-2 pr-4 font-medium">GFD PE</th>
+                    <th className="text-right py-2 pr-4 font-medium">Ratio</th>
+                    <th className="text-right py-2 font-medium">EM-DAT affected</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {allCountriesByRatio(country)
+                    .filter(
+                      (r) =>
+                        r.entry.fp_gfd_ratio != null &&
+                        r.entry.fp_gfd_ratio > 0 &&
+                        r.entry.floodpulse_pe_2000_2018 >= 1_000_000
+                    )
+                    .slice(0, 20)
+                    .map(({ iso3, entry }) => (
+                      <tr key={iso3} className="border-b border-border/50">
+                        <td className="py-2.5 pr-4 text-text-secondary">{entry.name}</td>
+                        <td className="py-2.5 pr-4 text-right text-text-primary font-mono">{fmt(entry.floodpulse_pe_2000_2018)}</td>
+                        <td className="py-2.5 pr-4 text-right text-text-primary font-mono">{fmt(entry.gfd_pe_2000_2018)}</td>
+                        <td className="py-2.5 pr-4 text-right text-[#ef8a62] font-mono">{entry.fp_gfd_ratio?.toFixed(1)}×</td>
+                        <td className="py-2.5 text-right text-text-tertiary font-mono">{fmt(entry.emdat_affected_2000_2022)}</td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+          </Section>
+        )}
 
         {/* 5. Literature Benchmarks Table */}
         <Section title="Literature Benchmarks">
