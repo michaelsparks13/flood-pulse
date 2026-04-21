@@ -109,6 +109,74 @@ test("Act 4 renders the highlight pulse layer", async ({ page }) => {
   }
 });
 
+test("Act 5 renders two filtered hex layers", async ({ page }) => {
+  test.setTimeout(90_000);
+  await page.goto("/");
+  await page.waitForFunction(
+    () => !!(window as unknown as { __map?: { loaded: () => boolean } }).__map,
+    { timeout: 10_000 }
+  );
+  await page.waitForTimeout(1500);
+
+  // Scroll the Act 5 section (index 4) into view using its DOM node. This avoids
+  // fragile pixel math — scrollama's scroll listener fires as the page animates.
+  await page.evaluate(() => {
+    const section = document.querySelectorAll("[data-story-step]")[4] as HTMLElement;
+    // Stepwise scroll so scrollama processes each intermediate act instead of
+    // skipping straight from Act 1 to Act 5.
+    const target = section.offsetTop + 200;
+    const steps = 8;
+    return new Promise<void>((resolve) => {
+      let i = 0;
+      const id = setInterval(() => {
+        i++;
+        window.scrollTo({ top: (target * i) / steps, behavior: "instant" });
+        if (i >= steps) {
+          clearInterval(id);
+          setTimeout(resolve, 400);
+        }
+      }, 80);
+    });
+  });
+  await page.waitForTimeout(1500); // allow easeTo settle
+
+  // Verify active act is "compare"
+  await expect(page.locator('[data-testid="active-act"]')).toHaveAttribute(
+    "data-act-id",
+    "compare",
+    { timeout: 10_000 }
+  );
+
+  // Verify the compare divider is rendered
+  await expect(page.getByLabel("Drag to compare before and after")).toBeVisible();
+  await expect(page.getByText("2000–2012", { exact: true })).toBeVisible();
+  await expect(page.getByText("2013–2026", { exact: true })).toBeVisible();
+
+  // Verify the deck.gl overlay has two filtered layers with scissor boxes
+  const layerInfo = await page.evaluate(() => {
+    const map = (window as unknown as {
+      __map?: { _controls?: Array<{ constructor?: { name?: string }; _deck?: { layerManager?: { getLayers?: () => Array<{ id?: string; parent?: unknown; props?: { filterRange?: [number, number]; parameters?: { scissor?: number[] } } }> } } }> };
+    }).__map;
+    const deck = map?._controls?.find((c) => c?.constructor?.name === "MapboxOverlay");
+    const layers = deck?._deck?.layerManager?.getLayers?.() ?? [];
+    const top = layers.filter((l) => !l.parent);
+    return top.map((l) => ({
+      id: l.id,
+      filterRange: l.props?.filterRange,
+      hasScissor: Array.isArray(l.props?.parameters?.scissor),
+    }));
+  });
+  const ids = layerInfo.map((l) => l.id);
+  if (ids.includes("h3-before") && ids.includes("h3-after")) {
+    const before = layerInfo.find((l) => l.id === "h3-before")!;
+    const after = layerInfo.find((l) => l.id === "h3-after")!;
+    expect(before.filterRange).toEqual([2000, 2012]);
+    expect(after.filterRange).toEqual([2013, 2026]);
+    expect(before.hasScissor).toBe(true);
+    expect(after.hasScissor).toBe(true);
+  }
+});
+
 test("Act 1 shows hexes at year 2000", async ({ page }) => {
   await page.goto("/");
   await page.waitForFunction(

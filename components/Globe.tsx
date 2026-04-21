@@ -45,6 +45,9 @@ interface GlobeProps {
   satellite?: boolean;
   hexOpacity?: number;
   highlightHex?: string;
+  splitCompare?: boolean;
+  /** Screen-space X position of the divider (0..1, relative to viewport width). Default 0.5. */
+  dividerX?: number;
   onBasemapReady?: () => void;
   onDataReady?: () => void;
   onRevealStart?: () => void;
@@ -58,6 +61,8 @@ export default function Globe({
   satellite = false,
   hexOpacity = 0.9,
   highlightHex,
+  splitCompare = false,
+  dividerX = 0.5,
   onBasemapReady,
   onDataReady,
   onRevealStart,
@@ -368,27 +373,79 @@ export default function Globe({
     };
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const layers: any[] = [layer];
-    if (highlightHex) {
-      const phase = (performance.now() / 1000) % 1.0;
-      const pulseAlpha = 120 + Math.round(Math.sin(phase * 2 * Math.PI) * 80);
-      layers.push(
+    let layers: any[];
+    if (splitCompare) {
+      // Before/After dual-layer with GL scissor clipping.
+      // Both layers draw the full globe, but GL's scissor test clips each to
+      // its half of the viewport — left half = 2000–2012, right half = 2013–2026.
+      const canvas = document.querySelector("canvas.deck-canvas") as HTMLCanvasElement | null;
+      const width = canvas?.width ?? window.innerWidth;
+      const height = canvas?.height ?? window.innerHeight;
+      const splitPx = Math.round(width * dividerX);
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const buildSplit = (
+        id: string,
+        filterRange: [number, number],
+        getFilterValue: (d: HexDatum) => number,
+        scissor: [number, number, number, number]
+      ) =>
         new (H3HexagonLayer as any)({
-          id: "h3-pulse",
-          data: [{ h: highlightHex }],
-          getHexagon: (d: { h: string }) => d.h,
-          getFillColor: [252, 255, 164, pulseAlpha],
-          filled: true,
-          stroked: true,
-          getLineColor: [252, 255, 164, 230],
-          getLineWidth: 2,
-          lineWidthUnits: "pixels",
-          pickable: false,
-          updateTriggers: {
-            getFillColor: [phase],
+          id,
+          data: hexData,
+          getHexagon: (d: HexDatum) => d.h,
+          getFillColor: (d: HexDatum) => {
+            const [r, g, b] = getExposureRGBA(d.p);
+            return [r, g, b, alpha];
           },
-        })
+          filled: true,
+          stroked: false,
+          pickable: false,
+          extensions: [new DataFilterExtension({ filterSize: 1 })],
+          getFilterValue,
+          filterRange,
+          parameters: { scissor },
+          updateTriggers: {
+            getFillColor: [hexOpacity],
+          },
+        });
+
+      const before = buildSplit(
+        "h3-before",
+        [2000, 2012],
+        (d: HexDatum) => d.y1, // hex's last-flood year must be ≤ 2012
+        [0, 0, splitPx, height]
       );
+      const after = buildSplit(
+        "h3-after",
+        [2013, 2026],
+        (d: HexDatum) => d.y0, // hex's first-flood year must be ≥ 2013
+        [splitPx, 0, width - splitPx, height]
+      );
+      layers = [before, after];
+    } else {
+      layers = [layer];
+      if (highlightHex) {
+        const phase = (performance.now() / 1000) % 1.0;
+        const pulseAlpha = 120 + Math.round(Math.sin(phase * 2 * Math.PI) * 80);
+        layers.push(
+          new (H3HexagonLayer as any)({
+            id: "h3-pulse",
+            data: [{ h: highlightHex }],
+            getHexagon: (d: { h: string }) => d.h,
+            getFillColor: [252, 255, 164, pulseAlpha],
+            filled: true,
+            stroked: true,
+            getLineColor: [252, 255, 164, 230],
+            getLineWidth: 2,
+            lineWidthUnits: "pixels",
+            pickable: false,
+            updateTriggers: {
+              getFillColor: [phase],
+            },
+          })
+        );
+      }
     }
 
     if (!overlayRef.current) {
@@ -407,7 +464,7 @@ export default function Globe({
       // readiness callback so consuming pages can unblock their UI.
       onDataReady?.();
     }
-  }, [dataReady, year, mapMode, hexOpacity, basemapReady, highlightHex, pulseTick]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [dataReady, year, mapMode, hexOpacity, basemapReady, highlightHex, pulseTick, splitCompare, dividerX]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Toggle country boundaries
   useEffect(() => {
