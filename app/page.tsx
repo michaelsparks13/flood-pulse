@@ -10,6 +10,7 @@ import DatasetCounter from "@/components/story/DatasetCounter";
 import RatioLineChart from "@/components/story/RatioLineChart";
 import CountryGapBar from "@/components/story/CountryGapBar";
 import CountryGapCard from "@/components/story/CountryGapCard";
+import CountryHeadlines from "@/components/story/CountryHeadlines";
 import { useActDataState } from "@/components/story/useActDataState";
 import { useScrollVelocity } from "@/components/story/useScrollVelocity";
 import { useReducedMotion } from "@/components/story/useReducedMotion";
@@ -108,6 +109,10 @@ export default function Home() {
       <CountryGapCard
         iso3={activeCountry?.iso3 ?? null}
         entry={activeCountryEntry}
+        visible={activeActId === "three-stories"}
+      />
+      <CountryHeadlines
+        iso3={activeCountry?.iso3 ?? null}
         visible={activeActId === "three-stories"}
       />
       <StoryProgressChip summary={summary} year={dataState.year} visible={chipVisible} />
