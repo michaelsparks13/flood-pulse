@@ -54,9 +54,30 @@ export default function StoryContainer({ onActChange }: StoryContainerProps) {
 
     const handleResize = () => scroller.resize();
     window.addEventListener("resize", handleResize);
+
+    // If the user returned here via "Back to the story" on /explore,
+    // scroll them to the act they left from (usually "handoff") so they
+    // don't have to re-scroll the entire narrative.
+    let restoreTimer: number | null = null;
+    try {
+      const returnTo = window.sessionStorage.getItem("floodpulse:returnToAct");
+      if (returnTo) {
+        window.sessionStorage.removeItem("floodpulse:returnToAct");
+        restoreTimer = window.setTimeout(() => {
+          const target = document.querySelector(
+            `[data-story-step="${returnTo}"]`,
+          ) as HTMLElement | null;
+          target?.scrollIntoView({ behavior: "auto", block: "center" });
+        }, 50);
+      }
+    } catch {
+      // sessionStorage may be unavailable — no-op, user starts from the top.
+    }
+
     return () => {
       scroller.destroy();
       window.removeEventListener("resize", handleResize);
+      if (restoreTimer !== null) window.clearTimeout(restoreTimer);
     };
   }, [flyTo, onActChange]);
 
