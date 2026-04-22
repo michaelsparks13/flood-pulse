@@ -12,6 +12,7 @@ import CountryGapBar from "@/components/story/CountryGapBar";
 import CountryGapCard from "@/components/story/CountryGapCard";
 import IntroPanel from "@/components/story/IntroPanel";
 import ScrollHint from "@/components/story/ScrollHint";
+import CountryCompareDivider from "@/components/story/CountryCompareDivider";
 import { useActDataState } from "@/components/story/useActDataState";
 import { useScrollVelocity } from "@/components/story/useScrollVelocity";
 import { useReducedMotion } from "@/components/story/useReducedMotion";
@@ -87,6 +88,9 @@ export default function Home() {
         hexOpacity={dataState.hexOpacity}
         highlightHex={dataState.highlightHex}
         datasetFilter={dataState.datasetFilter}
+        countryFilter={dataState.countryFilter}
+        compareMode={dataState.compareMode}
+        compareLng={dataState.compareLng}
       />
       <DatasetRevealLayer progress={revealProgress} reducedMotion={reducedMotion} />
       <DatasetCounter
@@ -114,6 +118,7 @@ export default function Home() {
       />
       <IntroPanel visible={activeActId === "old-map"} />
       <ScrollHint visible={activeActId === "old-map"} />
+      <CountryCompareDivider visible={activeActId === "three-stories"} />
       <StoryProgressChip summary={summary} year={dataState.year} visible={chipVisible} />
       <StoryContainer onActChange={handleActChange} />
       <HandoffButton visible={activeActId === "handoff"} />

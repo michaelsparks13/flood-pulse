@@ -6,6 +6,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import { MapboxOverlay } from "@deck.gl/mapbox";
 import { H3HexagonLayer } from "@deck.gl/geo-layers";
 import { DataFilterExtension } from "@deck.gl/extensions";
+import { cellToLatLng } from "h3-js";
 import type { MapMode, HexDatum, HexCompactJSON } from "@/lib/types";
 import { getExposureRGBA, getFrequencyRGBA, getConfidenceBlendedRGBA } from "@/lib/colors";
 import { useGlobe } from "@/context/GlobeContext";
@@ -55,6 +56,18 @@ interface GlobeProps {
    *  - "fp"   — Flood Pulse hexes that NO traditional DB ever flagged (news-only), painted orange.
    */
   datasetFilter?: "all" | "trad" | "fp";
+  /** Restrict the hex layer to a single ISO3 country. Hexes outside the country are hidden. */
+  countryFilter?: string;
+  /** Split-screen comparison mode:
+   *  - "none" (default) — single unified layer.
+   *  - "trad-vs-fp" — left of `compareLng` shows traditional-DB hexes in cyan, right shows
+   *    FP hexes in orange. When combined with `countryFilter`, this is the side-by-side
+   *    old-vs-new view used by Act 6 (three-stories).
+   */
+  compareMode?: "none" | "trad-vs-fp";
+  /** Longitude dividing the two halves in compareMode === "trad-vs-fp".
+   *  Defaults to the country camera center; pass explicitly to override. */
+  compareLng?: number;
   onBasemapReady?: () => void;
   onDataReady?: () => void;
   onRevealStart?: () => void;
@@ -72,6 +85,9 @@ export default function Globe({
   confidenceMode = false,
   dividerX = 0.5,
   datasetFilter = "all",
+  countryFilter,
+  compareMode = "none",
+  compareLng,
   onBasemapReady,
   onDataReady,
   onRevealStart,
@@ -115,6 +131,9 @@ export default function Globe({
         const gfdSet = new Set(gfdCountries);
         for (const hex of data) {
           hex.isGfdObserved = gfdSet.has(hex.cc);
+          const [lat, lng] = cellToLatLng(hex.h);
+          hex.lat = lat;
+          hex.lng = lng;
         }
         console.log(`[FloodPulse] Loaded ${data.length} hexes; GFD-observed countries: ${gfdCountries.length}`);
         hexDataRef.current = data;
@@ -296,6 +315,8 @@ export default function Globe({
       data: hexData,
       getHexagon: (d: HexDatum) => d.h,
       getFillColor: (d: HexDatum) => {
+        // Country filter: hide hexes outside the target country.
+        if (countryFilter && d.cc !== countryFilter) return [0, 0, 0, 0];
         const isTrad = d.trad_y0 != null;
         // Dataset filter: hide hexes that don't match the selected dataset.
         if (datasetFilter === "trad" && !isTrad) return [0, 0, 0, 0];
@@ -325,7 +346,7 @@ export default function Globe({
       filterRange: [0, year],
 
       updateTriggers: {
-        getFillColor: [mapMode, hexOpacity, confidenceMode, datasetFilter],
+        getFillColor: [mapMode, hexOpacity, confidenceMode, datasetFilter, countryFilter],
         getFilterValue: [datasetFilter],
       },
 
@@ -401,10 +422,63 @@ export default function Globe({
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let layers: any[];
-    if (splitCompare) {
-      // Before/After dual-layer with GL scissor clipping.
-      // Both layers draw the full globe, but GL's scissor test clips each to
-      // its half of the viewport — left half = 2000–2012, right half = 2013–2026.
+    if (compareMode === "trad-vs-fp") {
+      // Side-by-side old-vs-new, split in DATA space by hex longitude.
+      // (GL scissor didn't clip reliably under MapLibre's globe projection,
+      //  so we use the enriched hex.lng to partition cells into the two halves.)
+      // - Left of compareLng: cyan, trad-DB hexes only.
+      // - Right of compareLng: orange, FP hexes only.
+      // Both respect `countryFilter` so Act 6 shows just the target country.
+      const isInCountry = (d: HexDatum) =>
+        !countryFilter || d.cc === countryFilter;
+      const divLng = compareLng ?? 0;
+
+      const tradLayer = new (H3HexagonLayer as any)({
+        id: "h3-trad-left",
+        data: hexData,
+        getHexagon: (d: HexDatum) => d.h,
+        getFillColor: (d: HexDatum) => {
+          if (!isInCountry(d)) return [0, 0, 0, 0];
+          if (d.trad_y0 == null) return [0, 0, 0, 0];
+          if ((d.lng ?? 0) >= divLng) return [0, 0, 0, 0];
+          return [0x22, 0xd3, 0xee, Math.round(hexOpacity * 240)];
+        },
+        filled: true,
+        stroked: false,
+        pickable: false,
+        extensions: [new DataFilterExtension({ filterSize: 1 })],
+        getFilterValue: (d: HexDatum) => d.trad_y0 ?? 9999,
+        filterRange: [0, year],
+        updateTriggers: {
+          getFillColor: [hexOpacity, countryFilter, compareLng],
+        },
+      });
+
+      const fpLayer = new (H3HexagonLayer as any)({
+        id: "h3-fp-right",
+        data: hexData,
+        getHexagon: (d: HexDatum) => d.h,
+        getFillColor: (d: HexDatum) => {
+          if (!isInCountry(d)) return [0, 0, 0, 0];
+          if (d.y0 == null) return [0, 0, 0, 0];
+          if ((d.lng ?? 0) < divLng) return [0, 0, 0, 0];
+          return [0xef, 0x8a, 0x62, Math.round(hexOpacity * 240)];
+        },
+        filled: true,
+        stroked: false,
+        pickable: false,
+        extensions: [new DataFilterExtension({ filterSize: 1 })],
+        getFilterValue: (d: HexDatum) => d.y0 ?? 9999,
+        filterRange: [0, year],
+        updateTriggers: {
+          getFillColor: [hexOpacity, countryFilter, compareLng],
+        },
+      });
+
+      layers = [tradLayer, fpLayer];
+    } else if (splitCompare) {
+      // Legacy before/after year split — kept for potential future use. Not
+      // currently wired into any scrollytelling act.
       const canvas = document.querySelector("canvas.deck-canvas") as HTMLCanvasElement | null;
       const width = canvas?.width ?? window.innerWidth;
       const height = canvas?.height ?? window.innerHeight;
@@ -440,13 +514,13 @@ export default function Globe({
       const before = buildSplit(
         "h3-before",
         [2000, 2012],
-        (d: HexDatum) => d.y1, // hex's last-flood year must be ≤ 2012
+        (d: HexDatum) => d.y1,
         [0, 0, splitPx, height]
       );
       const after = buildSplit(
         "h3-after",
         [2013, 2026],
-        (d: HexDatum) => d.y0, // hex's first-flood year must be ≥ 2013
+        (d: HexDatum) => d.y0,
         [splitPx, 0, width - splitPx, height]
       );
       layers = [before, after];
@@ -455,6 +529,13 @@ export default function Globe({
     }
 
     if (!overlayRef.current) {
+      // Tried `interleaved: true` to share the MapLibre globe projection —
+      // made things worse (hexes detach to the horizon). deck.gl's
+      // H3HexagonLayer doesn't currently project through MapLibre's globe
+      // camera. Mitigation: scrollytelling cameras use pitch 0 during the
+      // zoomed acts. Deeper fix = swap to a MapLibre native fill layer fed
+      // by per-hex polygon geometry, or wait for deck.gl to gain globe-view
+      // support. See issue #4.
       const overlay = new MapboxOverlay({
         interleaved: false,
         layers,
@@ -472,7 +553,7 @@ export default function Globe({
       onDataReady?.();
       onRevealStart?.();
     }
-  }, [dataReady, year, mapMode, hexOpacity, basemapReady, highlightHex, splitCompare, confidenceMode, dividerX]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [dataReady, year, mapMode, hexOpacity, basemapReady, highlightHex, splitCompare, confidenceMode, dividerX, datasetFilter, countryFilter, compareMode, compareLng]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Pulse layer animation — runs independently of the main layer effect
   // so 30k hexes don't get rebuilt every frame.
