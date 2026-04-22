@@ -13,6 +13,7 @@ import CountryGapCard from "@/components/story/CountryGapCard";
 import IntroPanel from "@/components/story/IntroPanel";
 import ScrollHint from "@/components/story/ScrollHint";
 import CountryCompareDivider from "@/components/story/CountryCompareDivider";
+import CountryHeadlines from "@/components/story/CountryHeadlines";
 import { useActDataState } from "@/components/story/useActDataState";
 import { useScrollVelocity } from "@/components/story/useScrollVelocity";
 import { useReducedMotion } from "@/components/story/useReducedMotion";
@@ -114,6 +115,10 @@ export default function Home() {
       <CountryGapCard
         iso3={activeCountry?.iso3 ?? null}
         entry={activeCountryEntry}
+        visible={activeActId === "three-stories"}
+      />
+      <CountryHeadlines
+        iso3={activeCountry?.iso3 ?? null}
         visible={activeActId === "three-stories"}
       />
       <IntroPanel visible={activeActId === "old-map"} />

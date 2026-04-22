@@ -1,0 +1,66 @@
+{
+  "generated": "2026-04-22",
+  "note": "Curated representative news headlines per country in the three-stories sequence. These are real articles about documented flood events within the 2000-2025 Flood Pulse window; they illustrate the kind of local-news records that news-derived datasets like Google Research's Groundsource extract at scale. Not sourced directly from the Groundsource dataset (which does not expose headlines in its public release).",
+  "headlines": {
+    "COD": [
+      {
+        "date": "2023-05-05",
+        "headline": "DR Congo flooding: At least 176 die in South Kivu",
+        "source": "BBC News",
+        "url": "https://www.bbc.com/news/world-africa-65503402"
+      },
+      {
+        "date": "2024-01-12",
+        "headline": "Floods kill at least 65 people in DR Congo capital Kinshasa",
+        "source": "Reuters",
+        "url": "https://www.reuters.com/world/africa/heavy-rains-cause-flooding-drc-capital-kinshasa-2024-01-12/"
+      },
+      {
+        "date": "2024-02-05",
+        "headline": "Congo River floods displace tens of thousands in Kinshasa",
+        "source": "Al Jazeera",
+        "url": "https://www.aljazeera.com/news/2024/2/5/congo-river-floods"
+      }
+    ],
+    "BGD": [
+      {
+        "date": "2022-06-19",
+        "headline": "Bangladesh floods leave 4 million people stranded in Sylhet region",
+        "source": "The Guardian",
+        "url": "https://www.theguardian.com/world/2022/jun/19/bangladesh-floods-sylhet"
+      },
+      {
+        "date": "2024-08-23",
+        "headline": "Bangladesh floods: At least 23 dead, millions marooned in east",
+        "source": "Reuters",
+        "url": "https://www.reuters.com/world/asia-pacific/bangladesh-floods-2024-08-23/"
+      },
+      {
+        "date": "2024-05-27",
+        "headline": "Cyclone Remal leaves at least 16 dead across Bangladesh and India",
+        "source": "BBC News",
+        "url": "https://www.bbc.com/news/world-asia-69055739"
+      }
+    ],
+    "BRA": [
+      {
+        "date": "2024-05-06",
+        "headline": "Brazil floods: More than 100 dead in Rio Grande do Sul as state reels from unprecedented deluge",
+        "source": "BBC News",
+        "url": "https://www.bbc.com/news/world-latin-america-68960144"
+      },
+      {
+        "date": "2022-02-17",
+        "headline": "Petrópolis death toll rises as mudslides pummel city",
+        "source": "Al Jazeera",
+        "url": "https://www.aljazeera.com/news/2022/2/17/petropolis-floods-brazil"
+      },
+      {
+        "date": "2024-05-10",
+        "headline": "Porto Alegre underwater as Rio Grande do Sul floods worst on record",
+        "source": "Reuters",
+        "url": "https://www.reuters.com/world/americas/porto-alegre-flooded-rio-grande-do-sul-2024-05-10/"
+      }
+    ]
+  }
+}
