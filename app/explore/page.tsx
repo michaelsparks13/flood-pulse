@@ -9,6 +9,7 @@ import MethodologyDrawer from "@/components/MethodologyDrawer";
 import LayersPanel from "@/components/LayersPanel";
 import ComparisonPopover from "@/components/ComparisonPopover";
 import InteractionHint from "@/components/InteractionHint";
+import BackToStoryButton from "@/components/explore/BackToStoryButton";
 import type { GlobalSummary, MapMode } from "@/lib/types";
 
 // Load Globe client-side only (MapLibre needs DOM)
@@ -264,8 +265,9 @@ export default function Home() {
         </button>
       </div>
 
-      {/* Top-right: compare + layers + methodology */}
+      {/* Top-right: back to story + compare + layers + methodology */}
       <div className="absolute top-5 right-5 z-10 flex items-center gap-2 pointer-events-auto">
+        <BackToStoryButton />
         <ComparisonPopover />
         <LayersPanel
           showBoundaries={showBoundaries}
