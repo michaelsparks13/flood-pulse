@@ -1,5 +1,5 @@
 {
-  "dataThrough": "2026-02",
+  "dataThrough": "2025-12",
   "byYear": [
     {
       "year": 2000,
@@ -208,20 +208,12 @@
       "rawRecordCount": 395506,
       "countriesAffected": 163,
       "hexesFlooded": 80781
-    },
-    {
-      "year": 2026,
-      "populationExposed": 86039538,
-      "cumulativePopulationExposed": 6347457141,
-      "rawRecordCount": 26723,
-      "countriesAffected": 109,
-      "hexesFlooded": 10361
     }
   ],
   "totals": {
-    "populationExposed": 6347457141,
+    "populationExposed": 6261417603,
     "countries": 171,
-    "hexesEverFlooded": 171349,
-    "areaKm2": 43334823.2
+    "hexesEverFlooded": 171055,
+    "areaKm2": 43260469.4
   }
 }

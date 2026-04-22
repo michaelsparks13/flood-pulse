@@ -13,6 +13,10 @@ export interface HexDatum {
   ft: number;  // frequency trend (-50 to +50)
   rp: number;  // return period (years)
   isGfdObserved?: boolean;  // enriched client-side; country is in Tellman 2021's GFD list
+  isGfdHex?: boolean;       // hex is within a Tellman 2021 GFD event footprint (set by pipeline)
+  gfd_y0?: number;          // first year this hex was inside a GFD event
+  gfd_y1?: number;          // last year this hex was inside a GFD event
+  gfd_p?: number;           // population within this hex during GFD coverage
 }
 
 /** Wire format for hex_compact.json */
@@ -49,7 +53,7 @@ export interface CountryData {
 
 /** Global summary for the animated counter */
 export interface GlobalSummary {
-  /** Latest year-month in the dataset, e.g. "2026-02" */
+  /** Latest year-month in the dataset, e.g. "2025-12" */
   dataThrough: string;
   byYear: {
     year: number;

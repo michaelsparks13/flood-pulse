@@ -22,6 +22,11 @@ FINAL = DATA_ROOT / "final"
 GROUNDSOURCE_PARQUET = RAW / "groundsource_2026.parquet"
 NATURAL_EARTH_GEOJSON = RAW / "ne_110m_admin_0_countries.geojson"
 
+# Maximum year to include in client-side outputs. The Groundsource 2026
+# parquet contains a partial 2026, which distorts visualizations. Clamp to
+# the last fully-observed year.
+MAX_YEAR: int = 2025
+
 # GHS-POP R2023A epochs covering 2000-2026
 GHSPOP_EPOCHS: list[int] = [2000, 2005, 2010, 2015, 2020, 2025]
 

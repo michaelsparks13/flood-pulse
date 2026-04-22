@@ -23,6 +23,7 @@ from config import (
     EMDAT_COUNTRY_AFFECTED_CSV,
     GFD_COUNTRY_PE_CSV,
     GLOBAL_SUMMARY_JSON,
+    MAX_YEAR,
     ensure_dirs,
 )
 
@@ -77,7 +78,7 @@ def fp_pe_cumulative(ts: list[dict], year_start: int, year_end: int) -> int:
 
 
 def fp_pe_cumulative_to_latest(ts: list[dict]) -> int:
-    return sum(int(y["populationExposed"]) for y in ts)
+    return sum(int(y["populationExposed"]) for y in ts if y["year"] <= MAX_YEAR)
 
 
 def safe_int(s: str | None) -> int | None:

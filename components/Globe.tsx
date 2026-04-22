@@ -293,10 +293,10 @@ export default function Globe({
       getHexagon: (d: HexDatum) => d.h,
       getFillColor: (d: HexDatum) => {
         // Dataset filter: hide hexes that don't match the selected dataset
-        if (datasetFilter === "gfd" && !d.isGfdObserved) return [0, 0, 0, 0];
-        if (datasetFilter === "fp" && d.isGfdObserved) return [0, 0, 0, 0];
+        if (datasetFilter === "gfd" && !d.isGfdHex) return [0, 0, 0, 0];
+        if (datasetFilter === "fp" && d.isGfdHex) return [0, 0, 0, 0];
         // Apply dataset-specific palette when filter is active
-        if (datasetFilter === "gfd") return [0x22, 0xd3, 0xee, Math.round(hexOpacity * 180)];
+        if (datasetFilter === "gfd") return [0x22, 0xd3, 0xee, Math.round(hexOpacity * 220)];
         if (datasetFilter === "fp") return [0xef, 0x8a, 0x62, Math.round(hexOpacity * 220)];
         // Default: exposure/frequency/confidence coloring
         const [r, g, b] = colorFn(d);
@@ -455,9 +455,11 @@ export default function Globe({
       triggerReveal();
     } else {
       overlayRef.current.setProps({ layers });
-      // Overlay already existed (navigated back to this route). Fire the
-      // readiness callback so consuming pages can unblock their UI.
+      // Overlay already existed (navigated back to this route). Fire both
+      // readiness callbacks — the new page has no way to know the globe
+      // was already revealed on a prior mount.
       onDataReady?.();
+      onRevealStart?.();
     }
   }, [dataReady, year, mapMode, hexOpacity, basemapReady, highlightHex, splitCompare, confidenceMode, dividerX]); // eslint-disable-line react-hooks/exhaustive-deps
 

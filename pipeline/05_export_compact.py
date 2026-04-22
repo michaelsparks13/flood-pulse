@@ -24,6 +24,7 @@ from config import (
     FINAL,
     HEX_AGGREGATES_PARQUET,
     HEX_COMPACT_JSON,
+    MAX_YEAR,
     ensure_dirs,
 )
 
@@ -56,6 +57,15 @@ def main() -> None:
 
     df = pd.read_parquet(HEX_AGGREGATES_PARQUET)
     log.info(f"Read {len(df):,} hexes from parquet")
+
+    # Defensive clamp: drop hexes whose first-flood year is past MAX_YEAR
+    # (should be zero if 03_aggregate was run with the same MAX_YEAR).
+    before = len(df)
+    df = df[df["first_flood_year"] <= MAX_YEAR].copy()
+    # Clamp last-flood year to MAX_YEAR for any stragglers
+    df["last_flood_year"] = df["last_flood_year"].clip(upper=MAX_YEAR)
+    if before != len(df):
+        log.info(f"Dropped {before - len(df):,} hexes with y0 > {MAX_YEAR}")
 
     columns = ["h", "m", "yf", "p", "y0", "y1", "cc", "ft", "rp"]
     rows = []

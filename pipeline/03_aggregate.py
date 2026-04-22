@@ -20,6 +20,7 @@ import logging
 import sys
 import time
 from collections import defaultdict
+from pathlib import Path
 
 import geopandas as gpd
 import h3
@@ -35,6 +36,7 @@ from config import (
     HEX_AGGREGATES_PARQUET,
     HEX_FLOOD_MONTHS,
     HEX_POPULATION,
+    MAX_YEAR,
     NATURAL_EARTH_GEOJSON,
     ensure_dirs,
 )
@@ -95,6 +97,14 @@ def main() -> None:
     log.info(f"Population hex-years: {len(pop_df):,}")
 
     flood_df["year"] = flood_df["year_month"].str[:4].astype(int)
+
+    # Clamp to last fully-observed year (drop partial 2026 data)
+    before = len(flood_df)
+    flood_df = flood_df[flood_df["year"] <= MAX_YEAR].copy()
+    log.info(
+        f"Filtered to year <= {MAX_YEAR}: "
+        f"{before:,} -> {len(flood_df):,} rows (dropped {before - len(flood_df):,})"
+    )
 
     # ----- Per-hex, per-year: unique flooded hexes with year-specific pop -----
     # Deduplicate: one row per (hex, year) regardless of how many months flooded.
@@ -254,10 +264,32 @@ def main() -> None:
     try:
         gs = pd.read_parquet(GROUNDSOURCE_PARQUET, columns=["start_date"])
         gs["year"] = gs["start_date"].str[:4].astype(int)
+        gs = gs[gs["year"] <= MAX_YEAR]
         for year, count in gs["year"].value_counts().items():
             raw_counts[int(year)] = int(count)
     except Exception:
-        log.warning("Could not read raw record counts")
+        log.warning(
+            "Could not read raw record counts from source parquet — "
+            "attempting to preserve existing values from previous global_summary.json"
+        )
+        try:
+            prior_public = (
+                Path(__file__).resolve().parent.parent
+                / "public" / "data" / "global_summary.json"
+            )
+            if prior_public.exists():
+                with open(prior_public) as f:
+                    prior = json.load(f)
+                for entry in prior.get("byYear", []):
+                    yr = int(entry.get("year", 0))
+                    if yr and yr <= MAX_YEAR:
+                        raw_counts[yr] = int(entry.get("rawRecordCount", 0))
+                log.info(
+                    f"Preserved rawRecordCount for {len(raw_counts)} years "
+                    f"from {prior_public}"
+                )
+        except Exception as e:
+            log.warning(f"Failed to preserve rawRecordCount: {e}")
 
     # Annual population exposed — each hex counted once per year, area-weighted
     yearly = (

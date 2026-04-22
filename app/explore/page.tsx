@@ -165,6 +165,7 @@ export default function Home() {
         showLabels={showLabels}
         satellite={satellite}
         hexOpacity={effectiveOpacity}
+        datasetFilter="all"
         onBasemapReady={handleBasemapReady}
         onDataReady={handleDataReady}
         onRevealStart={handleRevealStart}
