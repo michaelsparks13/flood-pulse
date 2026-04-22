@@ -20,6 +20,11 @@ export interface HexDatum {
   trad_p:  number | null;   // population within hex at most recent trad year
   trad_src: string | null;  // source flags: "D"=DFO, "G"=GFD, "C"=GDACS (concat, e.g. "DG", "DGC")
   isGfdObserved?: boolean;  // kept for backward-compat with older country-level logic
+  // H3 cell center coordinates, enriched client-side on load. Used by the
+  // country split-screen compare mode to position a left/right divider in
+  // data space (deck.gl's GL scissor doesn't clip reliably under MapLibre).
+  lat?: number;
+  lng?: number;
 }
 
 /** Wire format for hex_compact.json */

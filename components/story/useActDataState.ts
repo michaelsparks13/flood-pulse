@@ -34,17 +34,6 @@ export function useActDataState() {
     setActProgress(progress);
   }, []);
 
-  const dataState: ActDataState = useMemo(() => {
-    const act = ACTS.find((a) => a.id === activeActId) ?? ACTS[0];
-    const base = { ...act.data };
-    if (!act.progressDriven) return base;
-    const clamped = Math.max(0, Math.min(1, actProgress));
-    if (act.id === "reveal") return { ...base, revealProgress: clamped };
-    if (act.id === "ratio") return { ...base, ratioProgress: clamped };
-    if (act.id === "ladder") return { ...base, ladderProgress: clamped };
-    return base;
-  }, [activeActId, actProgress]);
-
   /** For Act 6: the active country index (0..2). */
   const activeCountryIndex = useMemo(() => {
     if (activeActId !== "three-stories") return -1;
@@ -53,6 +42,26 @@ export function useActDataState() {
       COUNTRY_SEQUENCE.length - 1,
     );
   }, [activeActId, actProgress]);
+
+  const dataState: ActDataState = useMemo(() => {
+    const act = ACTS.find((a) => a.id === activeActId) ?? ACTS[0];
+    const base = { ...act.data };
+    // Three-stories: scope the hex layer to the currently-scrolled country
+    // and enable the split-screen old-vs-new comparison.
+    if (act.id === "three-stories" && activeCountryIndex >= 0) {
+      const country = COUNTRY_SEQUENCE[activeCountryIndex];
+      base.countryFilter = country.iso3;
+      base.countryGapIso3 = country.iso3;
+      base.compareMode = "trad-vs-fp";
+      base.compareLng = country.camera.center[0];
+    }
+    if (!act.progressDriven) return base;
+    const clamped = Math.max(0, Math.min(1, actProgress));
+    if (act.id === "reveal") return { ...base, revealProgress: clamped };
+    if (act.id === "ratio") return { ...base, ratioProgress: clamped };
+    if (act.id === "ladder") return { ...base, ladderProgress: clamped };
+    return base;
+  }, [activeActId, actProgress, activeCountryIndex]);
 
   return {
     activeActId,

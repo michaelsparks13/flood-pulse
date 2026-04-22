@@ -18,20 +18,24 @@ export const GLOBE_PULLED_BACK: CameraKeyframe = {
   duration: "auto",
 };
 
-/** Congo basin: cloud-heavy region, sparse GFD, dense FP. Act 4. */
+/** Congo basin: cloud-heavy region, sparse GFD, dense FP. Act 4.
+ *  Pitch is 0° — deck.gl's H3HexagonLayer doesn't track MapLibre's globe
+ *  projection under non-zero pitch, so hexes detach from the basemap (issue
+ *  #4). Flat camera avoids that until deck.gl gains globe-view support. */
 export const CONGO_BASIN: CameraKeyframe = {
   center: [23, -2],
   zoom: 3.5,
-  pitch: 30,
+  pitch: 0,
   bearing: 0,
   duration: "auto",
 };
 
-/** Act 6 three-country flyover. */
+/** Act 6 three-country flyover. Flat (pitch 0) both for hex alignment and
+ *  because the split-screen old-vs-new view reads best straight down. */
 export const DRC: CameraKeyframe = {
   center: [25, -2],
   zoom: 4.5,
-  pitch: 30,
+  pitch: 0,
   bearing: 0,
   duration: 2500,
 };
@@ -39,7 +43,7 @@ export const DRC: CameraKeyframe = {
 export const BANGLADESH: CameraKeyframe = {
   center: [90, 23.7],
   zoom: 5.0,
-  pitch: 30,
+  pitch: 0,
   bearing: 0,
   duration: 2500,
 };
@@ -48,7 +52,7 @@ export const BANGLADESH: CameraKeyframe = {
 export const BRAZIL: CameraKeyframe = {
   center: [-53, -10],
   zoom: 3.4,
-  pitch: 30,
+  pitch: 0,
   bearing: 0,
   duration: 2500,
 };
