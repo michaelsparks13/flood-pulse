@@ -3,20 +3,23 @@ export type MapMode = "exposure" | "frequency";
 
 /** Compact hex datum for deck.gl H3HexagonLayer */
 export interface HexDatum {
-  h: string;   // H3 index
-  m: number;   // total months flooded
-  yf: number;  // total years flooded
-  p: number;   // population
-  y0: number;  // first flood year
-  y1: number;  // last flood year
-  cc: string;  // country code
-  ft: number;  // frequency trend (-50 to +50)
-  rp: number;  // return period (years)
-  isGfdObserved?: boolean;  // enriched client-side; country is in Tellman 2021's GFD list
-  isGfdHex?: boolean;       // hex is within a Tellman 2021 GFD event footprint (set by pipeline)
-  gfd_y0?: number;          // first year this hex was inside a GFD event
-  gfd_y1?: number;          // last year this hex was inside a GFD event
-  gfd_p?: number;           // population within this hex during GFD coverage
+  h: string;            // H3 index
+  m: number;            // total months flooded (Flood Pulse)
+  yf: number;           // total years flooded (Flood Pulse)
+  p: number;            // population (Flood Pulse)
+  y0: number;           // first flood year (Flood Pulse)
+  y1: number;           // last flood year (Flood Pulse)
+  cc: string;           // country code
+  ft: number;           // frequency trend (-50 to +50)
+  rp: number;           // return period (years)
+  // Traditional flood databases (DFO + GFD + GDACS, unioned). Null if the hex
+  // wasn't inside any traditional-DB footprint.
+  trad_y0: number | null;   // first year a traditional DB flagged this hex
+  trad_y1: number | null;   // last year a traditional DB flagged this hex
+  trad_yf: number | null;   // count of distinct trad-flagged years
+  trad_p:  number | null;   // population within hex at most recent trad year
+  trad_src: string | null;  // source flags: "D"=DFO, "G"=GFD, "C"=GDACS (concat, e.g. "DG", "DGC")
+  isGfdObserved?: boolean;  // kept for backward-compat with older country-level logic
 }
 
 /** Wire format for hex_compact.json */

@@ -41,11 +41,11 @@ export default function CountryGapCard({ iso3, entry, visible }: CountryGapCardP
           <div className="text-lg font-semibold text-text-primary mt-0.5">{entry.name}</div>
           <div className="mt-4 space-y-2 text-sm">
             <div className="flex items-center justify-between">
-              <span className="text-[#22d3ee]">Satellites (GFD)</span>
+              <span className="text-[#22d3ee]">Traditional catalogs</span>
               <span className="font-mono text-text-primary">{formatPE(entry.gfd_pe_2000_2018)}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-[#ef8a62]">Ground Source</span>
+              <span className="text-[#ef8a62]">Flood Pulse</span>
               <span className="font-mono text-text-primary">{formatPE(entry.floodpulse_pe_2000_2018)}</span>
             </div>
             {entry.fp_gfd_ratio != null && entry.fp_gfd_ratio > 0 && (
@@ -58,7 +58,7 @@ export default function CountryGapCard({ iso3, entry, visible }: CountryGapCardP
             )}
             {entry.gfd_pe_2000_2018 === null && (
               <div className="pt-2 border-t border-border/50 text-text-secondary text-xs">
-                Invisible to Tellman 2021&rsquo;s satellite catalog.
+                Zero events in the satellite catalog, 2000–2018.
               </div>
             )}
           </div>

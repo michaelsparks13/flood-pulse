@@ -41,6 +41,18 @@ GHSPOP_TIFF = GHSPOP_TIFFS[2020]
 HEX_FLOOD_MONTHS = PROCESSED / "hex_flood_months.parquet"
 HEX_POPULATION = PROCESSED / "hex_population.parquet"
 
+# Traditional flood databases (DFO + GFD + GDACS) — pre-Groundsource catalogs.
+# These represent what pre-2024 global flood science could "see" with polygon
+# footprints (DFO, GFD) and point + severity (GDACS).
+TRAD_RAW_DIR = RAW / "traditional"
+DFO_GPKG = TRAD_RAW_DIR / "Global_Flood_Records.gpkg"           # 1985-2024, 5503 polygons
+GFD_QC_CSV = TRAD_RAW_DIR / "gfd_qcdatabase_2019_08_01.csv"      # 2000-2018, 913 KML polygons
+GDACS_MONTHLY_DIR = TRAD_RAW_DIR / "gdacs_monthly"               # 2000-2025, per-month GeoJSON
+
+TRAD_HEX_YEARS = PROCESSED / "trad_hex_years.parquet"            # (h, year, src_chars)
+TRAD_HEX_POPULATION = PROCESSED / "trad_hex_population.parquet"  # (h, year, pop)
+TRAD_HEX_AGGREGATES = FINAL / "trad_hex_aggregates.parquet"      # per-hex summary
+
 HEX_AGGREGATES_PARQUET = FINAL / "hex_aggregates.parquet"
 HEX_AGGREGATES_GEOJSON = FINAL / "hex_aggregates.geojson"
 HEX_COMPACT_JSON = FINAL / "hex_compact.json"

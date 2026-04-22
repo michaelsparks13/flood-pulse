@@ -44,9 +44,10 @@ export const BANGLADESH: CameraKeyframe = {
   duration: 2500,
 };
 
-export const MOZAMBIQUE: CameraKeyframe = {
-  center: [35, -18.5],
-  zoom: 4.8,
+/** Brazil — centered on the Amazon / interior where the FP-vs-trad gap is largest. */
+export const BRAZIL: CameraKeyframe = {
+  center: [-53, -10],
+  zoom: 3.4,
   pitch: 30,
   bearing: 0,
   duration: 2500,
@@ -59,5 +60,5 @@ export const HANDOFF = GLOBE_NEUTRAL;
 export const COUNTRY_SEQUENCE = [
   { iso3: "COD", camera: DRC },
   { iso3: "BGD", camera: BANGLADESH },
-  { iso3: "MOZ", camera: MOZAMBIQUE },
+  { iso3: "BRA", camera: BRAZIL },
 ] as const;

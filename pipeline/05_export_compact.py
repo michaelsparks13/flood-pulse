@@ -25,6 +25,7 @@ from config import (
     HEX_AGGREGATES_PARQUET,
     HEX_COMPACT_JSON,
     MAX_YEAR,
+    TRAD_HEX_AGGREGATES,
     ensure_dirs,
 )
 
@@ -56,7 +57,7 @@ def main() -> None:
     t0 = time.time()
 
     df = pd.read_parquet(HEX_AGGREGATES_PARQUET)
-    log.info(f"Read {len(df):,} hexes from parquet")
+    log.info(f"Read {len(df):,} FP hexes from parquet")
 
     # Defensive clamp: drop hexes whose first-flood year is past MAX_YEAR
     # (should be zero if 03_aggregate was run with the same MAX_YEAR).
@@ -67,7 +68,34 @@ def main() -> None:
     if before != len(df):
         log.info(f"Dropped {before - len(df):,} hexes with y0 > {MAX_YEAR}")
 
-    columns = ["h", "m", "yf", "p", "y0", "y1", "cc", "ft", "rp"]
+    # Traditional-database hex set (DFO + GFD + GDACS). Left-join so every
+    # FP hex gets trad fields (nullable) and trad-only hexes are appended.
+    trad_df: pd.DataFrame | None = None
+    if TRAD_HEX_AGGREGATES.exists():
+        trad_df = pd.read_parquet(TRAD_HEX_AGGREGATES)
+        trad_df["trad_y1"] = trad_df["trad_y1"].clip(upper=MAX_YEAR)
+        log.info(f"Read {len(trad_df):,} traditional hexes from parquet")
+
+        merged = df.merge(trad_df, on="h3_index", how="outer", indicator=True)
+        only_trad = (merged["_merge"] == "right_only").sum()
+        both = (merged["_merge"] == "both").sum()
+        log.info(f"  FP+Trad overlap: {both:,}  |  Trad-only: {only_trad:,}")
+        df = merged.drop(columns=["_merge"])
+    else:
+        log.warning(
+            f"Traditional aggregates not found at {TRAD_HEX_AGGREGATES} — "
+            "proceeding without trad_* fields."
+        )
+        # Fill placeholder columns so downstream loop is uniform
+        for c in ("trad_y0", "trad_y1", "trad_yf", "trad_src", "trad_population"):
+            df[c] = None
+
+    # Columns (order matters — frontend reads positional).
+    # New trad fields are appended so existing frontend code keeps working.
+    columns = [
+        "h", "m", "yf", "p", "y0", "y1", "cc", "ft", "rp",
+        "trad_y0", "trad_y1", "trad_yf", "trad_p", "trad_src",
+    ]
     rows = []
     skipped = 0
 
@@ -79,16 +107,32 @@ def main() -> None:
             skipped += 1
             continue
 
+        # FP fields may be NaN for trad-only hexes
+        def _int_or_none(v):
+            return int(v) if pd.notna(v) else None
+
+        def _round_or_none(v, d=0):
+            return round(float(v), d) if pd.notna(v) else None
+
+        fp_m  = _int_or_none(row.get("total_months_flooded"))
+        fp_yf = _int_or_none(row.get("total_years_flooded"))
+        fp_p  = _round_or_none(row.get("population"))
+        fp_y0 = _int_or_none(row.get("first_flood_year"))
+        fp_y1 = _int_or_none(row.get("last_flood_year"))
+        fp_cc = row.get("country_code") if pd.notna(row.get("country_code")) else None
+        fp_ft = _round_or_none(row.get("frequency_trend", 0), 1)
+        fp_rp = _round_or_none(row.get("return_period", 0), 1)
+
+        t_y0  = _int_or_none(row.get("trad_y0"))
+        t_y1  = _int_or_none(row.get("trad_y1"))
+        t_yf  = _int_or_none(row.get("trad_yf"))
+        t_p   = _round_or_none(row.get("trad_population"))
+        t_src = row.get("trad_src") if pd.notna(row.get("trad_src")) else None
+
         rows.append([
             h3_index,
-            int(row["total_months_flooded"]),
-            int(row["total_years_flooded"]),
-            round(float(row["population"])),
-            int(row["first_flood_year"]),
-            int(row["last_flood_year"]),
-            row["country_code"],
-            round(float(row.get("frequency_trend", 0)), 1),
-            round(float(row.get("return_period", 0)), 1),
+            fp_m, fp_yf, fp_p, fp_y0, fp_y1, fp_cc, fp_ft, fp_rp,
+            t_y0, t_y1, t_yf, t_p, t_src,
         ])
 
     compact = {"columns": columns, "rows": rows}

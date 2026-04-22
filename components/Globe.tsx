@@ -49,8 +49,12 @@ interface GlobeProps {
   confidenceMode?: boolean;
   /** Screen-space X position of the divider (0..1, relative to viewport width). Default 0.5. */
   dividerX?: number;
-  /** Dataset filter mode: "all" = default, "gfd" = only GFD-observed-country hexes, "fp" = only non-GFD-country hexes. */
-  datasetFilter?: "all" | "gfd" | "fp";
+  /** Dataset filter mode:
+   *  - "all"  (default) — Flood Pulse hexes in the full exposure/frequency palette.
+   *  - "trad" — hexes that any traditional flood DB (DFO / GFD / GDACS) flagged, painted cyan.
+   *  - "fp"   — Flood Pulse hexes that NO traditional DB ever flagged (news-only), painted orange.
+   */
+  datasetFilter?: "all" | "trad" | "fp";
   onBasemapReady?: () => void;
   onDataReady?: () => void;
   onRevealStart?: () => void;
@@ -292,13 +296,14 @@ export default function Globe({
       data: hexData,
       getHexagon: (d: HexDatum) => d.h,
       getFillColor: (d: HexDatum) => {
-        // Dataset filter: hide hexes that don't match the selected dataset
-        if (datasetFilter === "gfd" && !d.isGfdHex) return [0, 0, 0, 0];
-        if (datasetFilter === "fp" && d.isGfdHex) return [0, 0, 0, 0];
-        // Apply dataset-specific palette when filter is active
-        if (datasetFilter === "gfd") return [0x22, 0xd3, 0xee, Math.round(hexOpacity * 220)];
+        const isTrad = d.trad_y0 != null;
+        // Dataset filter: hide hexes that don't match the selected dataset.
+        if (datasetFilter === "trad" && !isTrad) return [0, 0, 0, 0];
+        if (datasetFilter === "fp" && isTrad) return [0, 0, 0, 0];
+        // Apply dataset-specific palette when filter is active.
+        if (datasetFilter === "trad") return [0x22, 0xd3, 0xee, Math.round(hexOpacity * 220)];
         if (datasetFilter === "fp") return [0xef, 0x8a, 0x62, Math.round(hexOpacity * 220)];
-        // Default: exposure/frequency/confidence coloring
+        // Default: exposure/frequency/confidence coloring.
         const [r, g, b] = colorFn(d);
         return [r, g, b, alpha];
       },
@@ -309,13 +314,19 @@ export default function Globe({
       autoHighlight: true,
       highlightColor: [252, 255, 164, 77],
 
-      // GPU year filter
+      // GPU year filter — in trad mode, filter by the traditional-DB first year;
+      // otherwise, by Flood Pulse's first year. Hexes that have null in the
+      // relevant field get 9999 so filterRange excludes them.
       extensions: [new DataFilterExtension({ filterSize: 1 })],
-      getFilterValue: (d: HexDatum) => d.y0,
+      getFilterValue: (d: HexDatum) => {
+        if (datasetFilter === "trad") return d.trad_y0 ?? 9999;
+        return d.y0 ?? 9999;
+      },
       filterRange: [0, year],
 
       updateTriggers: {
         getFillColor: [mapMode, hexOpacity, confidenceMode, datasetFilter],
+        getFilterValue: [datasetFilter],
       },
 
       onHover: (info: any) => {
