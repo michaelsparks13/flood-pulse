@@ -11,6 +11,9 @@ interface GlobeContextValue {
   mapRef: React.MutableRefObject<maplibregl.Map | null>;
   overlayRef: React.MutableRefObject<MapboxOverlay | null>;
   hexDataRef: React.MutableRefObject<HexDatum[] | null>;
+  /** iso3 → dense integer index, populated alongside hex enrichment. Used by
+   *  the deck.gl layer to move country-filtering to the GPU (see HexDatum.ccIdx). */
+  countryIndexRef: React.MutableRefObject<Record<string, number> | null>;
   // containerRef is only read by Globe; it stays as RefObject.
   containerRef: React.RefObject<HTMLDivElement | null>;
   basemapReady: boolean;
@@ -25,6 +28,7 @@ export function GlobeProvider({ children }: { children: ReactNode }) {
   const mapRef = useRef<maplibregl.Map | null>(null);
   const overlayRef = useRef<MapboxOverlay | null>(null);
   const hexDataRef = useRef<HexDatum[] | null>(null);
+  const countryIndexRef = useRef<Record<string, number> | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [basemapReady, setBasemapReady] = useState(false);
   const [dataReady, setDataReady] = useState(false);
@@ -36,6 +40,7 @@ export function GlobeProvider({ children }: { children: ReactNode }) {
       mapRef,
       overlayRef,
       hexDataRef,
+      countryIndexRef,
       containerRef,
       basemapReady,
       dataReady,

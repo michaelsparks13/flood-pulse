@@ -8,7 +8,7 @@ import { H3HexagonLayer } from "@deck.gl/geo-layers";
 import { DataFilterExtension } from "@deck.gl/extensions";
 import { cellToLatLng } from "h3-js";
 import type { MapMode, HexDatum, HexCompactJSON } from "@/lib/types";
-import { getExposureRGBA, getFrequencyRGBA, getConfidenceBlendedRGBA } from "@/lib/colors";
+import { getExposureRGBA, getFrequencyRGBA, getConfidenceBlendedRGBA, getBlueExposureRGBA } from "@/lib/colors";
 import { useGlobe } from "@/context/GlobeContext";
 
 function formatPopulation(n: number): string {
@@ -52,22 +52,17 @@ interface GlobeProps {
   dividerX?: number;
   /** Dataset filter mode:
    *  - "all"  (default) — Flood Pulse hexes in the full exposure/frequency palette.
-   *  - "trad" — hexes that any traditional flood DB (DFO / GFD / GDACS) flagged, painted cyan.
-   *  - "fp"   — Flood Pulse hexes that NO traditional DB ever flagged (news-only), painted orange.
+   *  - "trad" — hexes that any traditional flood DB (DFO / GFD / GDACS) flagged,
+   *             colored by trad_p on a blue exposure ramp.
+   *  - "fp"   — Flood Pulse hexes that NO traditional DB ever flagged
+   *             (news-only), on the magma exposure ramp.
+   *  - "trad-split" — trad hexes blue, news-only FP hexes magma, painted
+   *             inside the primary layer so entering/leaving Act 6 doesn't
+   *             force a full deck.gl layer rebuild.
    */
-  datasetFilter?: "all" | "trad" | "fp";
+  datasetFilter?: "all" | "trad" | "fp" | "trad-split";
   /** Restrict the hex layer to a single ISO3 country. Hexes outside the country are hidden. */
   countryFilter?: string;
-  /** Split-screen comparison mode:
-   *  - "none" (default) — single unified layer.
-   *  - "trad-vs-fp" — left of `compareLng` shows traditional-DB hexes in cyan, right shows
-   *    FP hexes in orange. When combined with `countryFilter`, this is the side-by-side
-   *    old-vs-new view used by Act 6 (three-stories).
-   */
-  compareMode?: "none" | "trad-vs-fp";
-  /** Longitude dividing the two halves in compareMode === "trad-vs-fp".
-   *  Defaults to the country camera center; pass explicitly to override. */
-  compareLng?: number;
   onBasemapReady?: () => void;
   onDataReady?: () => void;
   onRevealStart?: () => void;
@@ -86,8 +81,6 @@ export default function Globe({
   dividerX = 0.5,
   datasetFilter = "all",
   countryFilter,
-  compareMode = "none",
-  compareLng,
   onBasemapReady,
   onDataReady,
   onRevealStart,
@@ -97,6 +90,7 @@ export default function Globe({
     mapRef,
     overlayRef,
     hexDataRef,
+    countryIndexRef,
     basemapReady,
     dataReady,
     setBasemapReady,
@@ -119,24 +113,80 @@ export default function Globe({
         .then((r) => (r.ok ? (r.json() as Promise<string[]>) : [] as string[]))
         .catch(() => [] as string[]),
     ])
-      .then(([json, gfdCountries]) => {
+      .then(async ([json, gfdCountries]) => {
         const { columns, rows } = json;
-        const data: HexDatum[] = rows.map((row) => {
-          const obj: Record<string, string | number> = {};
-          columns.forEach((col, i) => {
-            obj[col] = row[i];
-          });
-          return obj as unknown as HexDatum;
-        });
         const gfdSet = new Set(gfdCountries);
-        for (const hex of data) {
-          hex.isGfdObserved = gfdSet.has(hex.cc);
-          const [lat, lng] = cellToLatLng(hex.h);
-          hex.lat = lat;
-          hex.lng = lng;
+        // Dense country-code → integer, built as we iterate. Lets the deck.gl
+        // layer filter by country on the GPU (uniform flip, no buffer rebuild).
+        const countryIndex: Record<string, number> = {};
+        let nextCc = 0;
+        // Column index map — avoid per-row indexOf.
+        const idx = Object.fromEntries(columns.map((c, i) => [c, i])) as Record<string, number>;
+        // Drop hexes with negligible population on both catalogs — they're
+        // invisible in either palette and just inflate the per-hex work
+        // deck.gl has to do every time a dataset filter changes.
+        const MIN_POP = 100;
+        // Growable — we don't know the final size until we filter. Start at
+        // ~60% of row count (observed FP+trad retention rate).
+        const data: HexDatum[] = [];
+        // Chunk the conversion across frames so we don't freeze the main thread
+        // while 400k+ rows are materialized. yieldAfter ≈ 8ms per tick keeps
+        // scroll + paint responsive.
+        const CHUNK = 25_000;
+        let i = 0;
+        let ccIdxCounter = 0;
+        while (i < rows.length) {
+          const end = Math.min(i + CHUNK, rows.length);
+          for (let k = i; k < end; k++) {
+            const row = rows[k];
+            const p = row[idx.p] as number;
+            const tradP = row[idx.trad_p] as number | null;
+            if ((!p || p < MIN_POP) && (!tradP || tradP < MIN_POP)) continue;
+            const cc = row[idx.cc] as string;
+            let ccIdx = countryIndex[cc];
+            if (ccIdx === undefined) {
+              ccIdx = ccIdxCounter++;
+              countryIndex[cc] = ccIdx;
+            }
+            const hex = {
+              h: row[idx.h] as string,
+              m: row[idx.m] as number,
+              yf: row[idx.yf] as number,
+              p,
+              y0: row[idx.y0] as number,
+              y1: row[idx.y1] as number,
+              cc,
+              ft: row[idx.ft] as number,
+              rp: row[idx.rp] as number,
+              trad_y0: row[idx.trad_y0] as number | null,
+              trad_y1: row[idx.trad_y1] as number | null,
+              trad_yf: row[idx.trad_yf] as number | null,
+              trad_p: tradP,
+              trad_src: row[idx.trad_src] as string | null,
+              ccIdx,
+            } as HexDatum;
+            hex.isGfdObserved = gfdSet.has(cc);
+            const [lat, lng] = cellToLatLng(hex.h);
+            hex.lat = lat;
+            hex.lng = lng;
+            data.push(hex);
+          }
+          i = end;
+          if (i < rows.length) {
+            // Yield to the event loop so scroll, UI, and basemap tiles keep
+            // rendering while we're still enriching hex rows.
+            await new Promise<void>((resolve) => {
+              if (typeof (window as unknown as { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => void }).requestIdleCallback === "function") {
+                (window as unknown as { requestIdleCallback: (cb: () => void, opts?: { timeout: number }) => void }).requestIdleCallback(() => resolve(), { timeout: 50 });
+              } else {
+                setTimeout(resolve, 0);
+              }
+            });
+          }
         }
-        console.log(`[FloodPulse] Loaded ${data.length} hexes; GFD-observed countries: ${gfdCountries.length}`);
+        console.log(`[FloodPulse] Loaded ${data.length}/${rows.length} hexes after pop-filter; GFD-observed countries: ${gfdCountries.length}; unique countries: ${ccIdxCounter}`);
         hexDataRef.current = data;
+        countryIndexRef.current = countryIndex;
         setDataReady(true);
       })
       .catch((err) => console.error("[FloodPulse] Data load failed:", err));
@@ -159,7 +209,11 @@ export default function Globe({
 
     const style: maplibregl.StyleSpecification = {
       version: 8,
-      projection: { type: "globe" },
+      // Mercator (not globe). deck.gl's H3HexagonLayer doesn't project through
+      // MapLibre's globe camera — the hex overlay stayed in Mercator space
+      // while the basemap rotated in globe space, so hexes visibly drifted off
+      // every country during scroll-triggered pans. Mercator keeps basemap and
+      // hexes in the same projection, so they stay glued together.
       sources: {
         basemap: {
           type: "raster",
@@ -220,9 +274,11 @@ export default function Globe({
       const map = new maplibregl.Map({
         container,
         style,
-        center: [20, 15],
-        zoom: 0.8,
-        pitch: 20,
+        // Open at the Act 1 camera so there's no mid-load zoom jolt when the
+        // hex data finishes loading and the reveal fires.
+        center: [20, 5],
+        zoom: 1.4,
+        pitch: 0,
         maxZoom: 6,
         renderWorldCopies: false,
         attributionControl: false,
@@ -238,15 +294,6 @@ export default function Globe({
       );
 
       map.on("load", () => {
-        map.setSky({
-          "sky-color": "#07060d",
-          "horizon-color": "#07060d",
-          "fog-color": "#07060d",
-          "sky-horizon-blend": 0,
-          "horizon-fog-blend": 0,
-          "fog-ground-blend": 1,
-        });
-
         map.addSource("countries", {
           type: "geojson",
           data: "/data/ne_countries.geojson",
@@ -300,34 +347,69 @@ export default function Globe({
     const hexData = hexDataRef.current;
     if (!hexData) return;
 
-    const colorFn =
-      mapMode === "frequency"
-        ? (d: HexDatum) => getFrequencyRGBA(d.ft)
-        : confidenceMode
-        ? (d: HexDatum) => getConfidenceBlendedRGBA(d.p, d.m)
-        : (d: HexDatum) => getExposureRGBA(d.p);
-
     const alpha = Math.round(hexOpacity * 255);
+    const tradAlpha = Math.round(hexOpacity * 235);
+    const fpOnlyAlpha = Math.round(hexOpacity * 230);
+
+    // GPU country filter: flipping `countryFilter` rewrites a filterRange
+    // uniform rather than re-running getFillColor across 430k hexes, which is
+    // the difference between scroll hitching on Act 6 and not. Non-data
+    // countries get a no-op range [0, N] so every hex passes.
+    const ccIndex = countryIndexRef.current ?? {};
+    const ccIdxForFilter =
+      countryFilter !== undefined && ccIndex[countryFilter] !== undefined
+        ? ccIndex[countryFilter]
+        : -1;
+    const maxCcIdx = Object.keys(ccIndex).length;
+    const countryRange: [number, number] = ccIdxForFilter >= 0
+      ? [ccIdxForFilter, ccIdxForFilter]
+      : [0, maxCcIdx];
+
+    // Dataset-filter range. filterValue is stable across modes (filterSize=3:
+    // [minYear, ccIdx, isTradFlag]); mode selection happens via a uniform on
+    // the trad-flag dimension. "trad" narrows to trad-flagged hexes only;
+    // "fp" narrows to news-only; everything else lets both through. This
+    // avoids the several-hundred-ms main-thread stall that a color/filter
+    // accessor rerun across 400k hexes would otherwise trigger on every
+    // dataset mode change.
+    const datasetRange: [number, number] =
+      datasetFilter === "trad"
+        ? [1, 1]
+        : datasetFilter === "fp"
+        ? [0, 0]
+        : [0, 1];
+
+    // Frequency / confidence modes still need the per-hex color accessor
+    // since their values depend on per-hex fields. For the exposure mode
+    // (Acts 1–6) we paint deterministically: isTrad → blue on trad_p, else
+    // magma on p. No datasetFilter branching, so mode switches don't force
+    // deck.gl to re-run the accessor across every hex.
+    const staticExposurePaint = (d: HexDatum): [number, number, number, number] => {
+      if (d.trad_y0 != null) {
+        const [r, g, b] = getBlueExposureRGBA(d.trad_p ?? 0);
+        return [r, g, b, tradAlpha];
+      }
+      const [r, g, b] = getExposureRGBA(d.p);
+      return [r, g, b, fpOnlyAlpha];
+    };
+    const dynamicPaint = (d: HexDatum): [number, number, number, number] => {
+      if (mapMode === "frequency") {
+        const [r, g, b] = getFrequencyRGBA(d.ft);
+        return [r, g, b, alpha];
+      }
+      if (confidenceMode) {
+        const [r, g, b] = getConfidenceBlendedRGBA(d.p, d.m);
+        return [r, g, b, alpha];
+      }
+      return staticExposurePaint(d);
+    };
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const layer = new (H3HexagonLayer as any)({
       id: "h3-hexes",
       data: hexData,
       getHexagon: (d: HexDatum) => d.h,
-      getFillColor: (d: HexDatum) => {
-        // Country filter: hide hexes outside the target country.
-        if (countryFilter && d.cc !== countryFilter) return [0, 0, 0, 0];
-        const isTrad = d.trad_y0 != null;
-        // Dataset filter: hide hexes that don't match the selected dataset.
-        if (datasetFilter === "trad" && !isTrad) return [0, 0, 0, 0];
-        if (datasetFilter === "fp" && isTrad) return [0, 0, 0, 0];
-        // Apply dataset-specific palette when filter is active.
-        if (datasetFilter === "trad") return [0x22, 0xd3, 0xee, Math.round(hexOpacity * 220)];
-        if (datasetFilter === "fp") return [0xef, 0x8a, 0x62, Math.round(hexOpacity * 220)];
-        // Default: exposure/frequency/confidence coloring.
-        const [r, g, b] = colorFn(d);
-        return [r, g, b, alpha];
-      },
+      getFillColor: dynamicPaint,
       filled: true,
       stroked: false,
       extruded: false,
@@ -335,19 +417,21 @@ export default function Globe({
       autoHighlight: true,
       highlightColor: [252, 255, 164, 77],
 
-      // GPU year filter — in trad mode, filter by the traditional-DB first year;
-      // otherwise, by Flood Pulse's first year. Hexes that have null in the
-      // relevant field get 9999 so filterRange excludes them.
-      extensions: [new DataFilterExtension({ filterSize: 1 })],
-      getFilterValue: (d: HexDatum) => {
-        if (datasetFilter === "trad") return d.trad_y0 ?? 9999;
-        return d.y0 ?? 9999;
-      },
-      filterRange: [0, year],
+      // GPU filter dimensions [minYear, ccIdx, isTradFlag]. All three are
+      // uniform flips — datasetFilter, countryFilter, and year changes never
+      // force the color accessor to rerun across 400k hexes.
+      extensions: [new DataFilterExtension({ filterSize: 3 })],
+      getFilterValue: (d: HexDatum) => [
+        Math.min(d.trad_y0 ?? 9999, d.y0 ?? 9999),
+        d.ccIdx ?? 0,
+        d.trad_y0 != null ? 1 : 0,
+      ],
+      filterRange: [[0, year], countryRange, datasetRange],
 
       updateTriggers: {
-        getFillColor: [mapMode, hexOpacity, confidenceMode, datasetFilter, countryFilter],
-        getFilterValue: [datasetFilter],
+        // Only dynamic-paint inputs change the fill; plain exposure mode is
+        // stable across dataset/country/year changes.
+        getFillColor: [mapMode, hexOpacity, confidenceMode],
       },
 
       onHover: (info: any) => {
@@ -394,89 +478,16 @@ export default function Globe({
 
     const triggerReveal = () => {
       if (flyInDoneRef.current) return;
-      // Skip reveal if the map has already been zoomed in by a previous route mount.
-      // flyInDoneRef is local to this component and resets on remount; the camera
-      // state is the ground truth.
-      if (map.getZoom() > 1.2) {
-        flyInDoneRef.current = true;
-        onRevealStart?.();
-        return;
-      }
       flyInDoneRef.current = true;
+      // No camera fly-in: the map is already parked at the Act 1 keyframe
+      // (center [20, 5], zoom 1.4). Just signal the scrollytelling that hexes
+      // are ready so any reveal copy/overlay can unblock.
       onRevealStart?.();
-      const reducedMotion =
-        typeof window !== "undefined" &&
-        window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      if (!reducedMotion) {
-        map.flyTo({
-          center: [20, 15],
-          zoom: 1.8,
-          pitch: 0,
-          duration: 2800,
-          easing: (t: number) => 1 - Math.pow(1 - t, 4), // easeOutQuart
-        });
-      } else {
-        map.jumpTo({ center: [20, 15], zoom: 1.8, pitch: 0 });
-      }
     };
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let layers: any[];
-    if (compareMode === "trad-vs-fp") {
-      // Side-by-side old-vs-new, split in DATA space by hex longitude.
-      // (GL scissor didn't clip reliably under MapLibre's globe projection,
-      //  so we use the enriched hex.lng to partition cells into the two halves.)
-      // - Left of compareLng: cyan, trad-DB hexes only.
-      // - Right of compareLng: orange, FP hexes only.
-      // Both respect `countryFilter` so Act 6 shows just the target country.
-      const isInCountry = (d: HexDatum) =>
-        !countryFilter || d.cc === countryFilter;
-      const divLng = compareLng ?? 0;
-
-      const tradLayer = new (H3HexagonLayer as any)({
-        id: "h3-trad-left",
-        data: hexData,
-        getHexagon: (d: HexDatum) => d.h,
-        getFillColor: (d: HexDatum) => {
-          if (!isInCountry(d)) return [0, 0, 0, 0];
-          if (d.trad_y0 == null) return [0, 0, 0, 0];
-          if ((d.lng ?? 0) >= divLng) return [0, 0, 0, 0];
-          return [0x22, 0xd3, 0xee, Math.round(hexOpacity * 240)];
-        },
-        filled: true,
-        stroked: false,
-        pickable: false,
-        extensions: [new DataFilterExtension({ filterSize: 1 })],
-        getFilterValue: (d: HexDatum) => d.trad_y0 ?? 9999,
-        filterRange: [0, year],
-        updateTriggers: {
-          getFillColor: [hexOpacity, countryFilter, compareLng],
-        },
-      });
-
-      const fpLayer = new (H3HexagonLayer as any)({
-        id: "h3-fp-right",
-        data: hexData,
-        getHexagon: (d: HexDatum) => d.h,
-        getFillColor: (d: HexDatum) => {
-          if (!isInCountry(d)) return [0, 0, 0, 0];
-          if (d.y0 == null) return [0, 0, 0, 0];
-          if ((d.lng ?? 0) < divLng) return [0, 0, 0, 0];
-          return [0xef, 0x8a, 0x62, Math.round(hexOpacity * 240)];
-        },
-        filled: true,
-        stroked: false,
-        pickable: false,
-        extensions: [new DataFilterExtension({ filterSize: 1 })],
-        getFilterValue: (d: HexDatum) => d.y0 ?? 9999,
-        filterRange: [0, year],
-        updateTriggers: {
-          getFillColor: [hexOpacity, countryFilter, compareLng],
-        },
-      });
-
-      layers = [tradLayer, fpLayer];
-    } else if (splitCompare) {
+    if (splitCompare) {
       // Legacy before/after year split — kept for potential future use. Not
       // currently wired into any scrollytelling act.
       const canvas = document.querySelector("canvas.deck-canvas") as HTMLCanvasElement | null;
@@ -553,7 +564,7 @@ export default function Globe({
       onDataReady?.();
       onRevealStart?.();
     }
-  }, [dataReady, year, mapMode, hexOpacity, basemapReady, highlightHex, splitCompare, confidenceMode, dividerX, datasetFilter, countryFilter, compareMode, compareLng]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [dataReady, year, mapMode, hexOpacity, basemapReady, highlightHex, splitCompare, confidenceMode, dividerX, datasetFilter, countryFilter]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Pulse layer animation — runs independently of the main layer effect
   // so 30k hexes don't get rebuilt every frame.

@@ -109,6 +109,22 @@ const EXPOSURE_RGBA_STOPS: RGBStop[] = [
   [20000000, [255, 255, 255]],
 ];
 
+/** Blue-ramp for the traditional-catalog view. Same population breakpoints
+ *  as the magma exposure scale, but anchored on deep navy → teal → pale cyan
+ *  so the old-data frame reads as a separate chromatic world from the
+ *  warm-orange FloodPulse palette. Hexes with tiny catch populations render
+ *  barely-visible navy; dense catches glow bright cyan. */
+const BLUE_EXPOSURE_RGBA_STOPS: RGBStop[] = [
+  [0, [7, 18, 50]],
+  [1000, [14, 40, 90]],
+  [10000, [23, 74, 140]],
+  [50000, [25, 118, 175]],
+  [200000, [34, 167, 196]],
+  [1000000, [83, 203, 220]],
+  [5000000, [173, 230, 240]],
+  [20000000, [235, 250, 255]],
+];
+
 /** Frequency: trend → diverging RdBu RGB (same stops as Globe.tsx FREQUENCY_PAINT) */
 const FREQUENCY_RGBA_STOPS: RGBStop[] = [
   [-50, [33, 102, 172]],
@@ -120,6 +136,12 @@ const FREQUENCY_RGBA_STOPS: RGBStop[] = [
 
 export function getExposureRGBA(population: number): [number, number, number] {
   return interpolateRGBA(population, EXPOSURE_RGBA_STOPS);
+}
+
+export function getBlueExposureRGBA(
+  population: number,
+): [number, number, number] {
+  return interpolateRGBA(population, BLUE_EXPOSURE_RGBA_STOPS);
 }
 
 export function getFrequencyRGBA(trend: number): [number, number, number] {

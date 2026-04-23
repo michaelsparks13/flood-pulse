@@ -25,6 +25,11 @@ export interface HexDatum {
   // data space (deck.gl's GL scissor doesn't clip reliably under MapLibre).
   lat?: number;
   lng?: number;
+  /** Dense integer index of `cc` — enriched on load so the deck.gl layer can
+   *  filter by country on the GPU (via DataFilterExtension). Flipping
+   *  `countryFilter` becomes a uniform change instead of a 430k-hex color
+   *  recompute, which is the difference between scroll hitching and not. */
+  ccIdx?: number;
 }
 
 /** Wire format for hex_compact.json */

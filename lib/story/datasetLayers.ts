@@ -9,7 +9,7 @@
  * - "all":  default explorer view; no dataset filter, full exposure palette.
  */
 
-export type DatasetFilter = "all" | "trad" | "fp";
+export type DatasetFilter = "all" | "trad" | "fp" | "trad-split";
 
 /** Cyan: the "traditional catalogs saw this" color. */
 export const TRAD_COLOR: [number, number, number] = [0x22, 0xd3, 0xee];

@@ -15,6 +15,22 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        <link
+          rel="preload"
+          as="fetch"
+          href="/data/hex_compact.json"
+          type="application/json"
+          crossOrigin="anonymous"
+        />
+        <link
+          rel="preload"
+          as="fetch"
+          href="/data/gfd_observed_countries.json"
+          type="application/json"
+          crossOrigin="anonymous"
+        />
+      </head>
       <body>
         <GlobeProvider>{children}</GlobeProvider>
       </body>

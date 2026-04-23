@@ -18,6 +18,36 @@ export default function StoryContainer({ onActChange }: StoryContainerProps) {
 
   useEffect(() => {
     const scroller = scrollama();
+    // Scrollama fires onStepProgress once per scroll event — at ~60–120 Hz on
+    // a trackpad. Funneling every tick into React state updates (and the hex
+    // layer effect downstream) made the three-stories act feel unresponsive.
+    // Coalesce into a single rAF-per-frame update instead.
+    let rafId: number | null = null;
+    let pending: { id: string; progress: number } | null = null;
+
+    const flushProgress = () => {
+      rafId = null;
+      if (!pending) return;
+      const { id, progress } = pending;
+      pending = null;
+      setProgressById((p) => {
+        if (p[id] === progress) return p;
+        return { ...p, [id]: progress };
+      });
+
+      if (id === "three-stories") {
+        const idx = Math.min(
+          COUNTRY_SEQUENCE.length - 1,
+          Math.floor(progress * COUNTRY_SEQUENCE.length)
+        );
+        if (idx !== lastCountryIdxRef.current) {
+          lastCountryIdxRef.current = idx;
+          flyTo(COUNTRY_SEQUENCE[idx].camera);
+        }
+      }
+      onActChange?.(id, progress);
+    };
+
     scroller
       .setup({
         step: "[data-story-step]",
@@ -36,20 +66,10 @@ export default function StoryContainer({ onActChange }: StoryContainerProps) {
       })
       .onStepProgress((res) => {
         const id = res.element.getAttribute("data-story-step")!;
-        setProgressById((p) => ({ ...p, [id]: res.progress }));
-
-        if (id === "three-stories") {
-          // Map scroll progress (0..1) to country index 0..2
-          const idx = Math.min(
-            COUNTRY_SEQUENCE.length - 1,
-            Math.floor(res.progress * COUNTRY_SEQUENCE.length)
-          );
-          if (idx !== lastCountryIdxRef.current) {
-            lastCountryIdxRef.current = idx;
-            flyTo(COUNTRY_SEQUENCE[idx].camera);
-          }
+        pending = { id, progress: res.progress };
+        if (rafId == null) {
+          rafId = window.requestAnimationFrame(flushProgress);
         }
-        onActChange?.(id, res.progress);
       });
 
     const handleResize = () => scroller.resize();
@@ -78,6 +98,7 @@ export default function StoryContainer({ onActChange }: StoryContainerProps) {
       scroller.destroy();
       window.removeEventListener("resize", handleResize);
       if (restoreTimer !== null) window.clearTimeout(restoreTimer);
+      if (rafId != null) window.cancelAnimationFrame(rafId);
     };
   }, [flyTo, onActChange]);
 

@@ -4,8 +4,12 @@ import { useEffect, useState } from "react";
 
 interface DatasetCounterProps {
   progress: number;
-  fpPe: number;
-  gfdPe: number;
+  /** Value shown at progress = 0. */
+  fromValue: number;
+  /** Value shown at progress = 1. */
+  toValue: number;
+  /** Short label rendered above the number. */
+  label?: string;
   visible: boolean;
 }
 
@@ -18,20 +22,21 @@ function formatPE(value: number): string {
 
 export default function DatasetCounter({
   progress,
-  fpPe,
-  gfdPe,
+  fromValue,
+  toValue,
+  label = "Cumulative PE, 2000–2018",
   visible,
 }: DatasetCounterProps) {
-  const [display, setDisplay] = useState(gfdPe);
+  const [display, setDisplay] = useState(fromValue);
 
   useEffect(() => {
     const eased = Math.max(0, Math.min(1, progress));
-    // Exponential interpolation — GFD → FP spans ~10x, linear feels sluggish.
-    const logStart = Math.log10(Math.max(gfdPe, 1));
-    const logEnd = Math.log10(Math.max(fpPe, 1));
+    // Exponential interpolation — the span is ~10x, so linear feels sluggish.
+    const logStart = Math.log10(Math.max(fromValue, 1));
+    const logEnd = Math.log10(Math.max(toValue, 1));
     const current = Math.pow(10, logStart + eased * (logEnd - logStart));
     setDisplay(Math.round(current));
-  }, [progress, fpPe, gfdPe]);
+  }, [progress, fromValue, toValue]);
 
   return (
     <div
@@ -49,7 +54,7 @@ export default function DatasetCounter({
       className="font-mono text-text-primary"
     >
       <div className="text-[10px] uppercase tracking-widest text-text-tertiary">
-        Cumulative PE, 2000&ndash;2018
+        {label}
       </div>
       <div className="text-4xl md:text-6xl font-bold tabular-nums mt-1">
         {formatPE(display)}

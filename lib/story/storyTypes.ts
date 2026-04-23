@@ -22,10 +22,6 @@ export interface ActDataState {
   countryGapIso3?: string;
   /** Act 6: restrict the hex layer to a single country's hexes (ISO3). */
   countryFilter?: string;
-  /** Act 6: split-screen old-vs-new comparison mode. */
-  compareMode?: "none" | "trad-vs-fp";
-  /** Act 6: divider longitude (country camera center) for the split-screen. */
-  compareLng?: number;
   /** Act 2: 0..1 scroll progress, drives reveal wipe + counter. */
   revealProgress?: number;
   /** Act 3: 0..1 scroll progress, drives ratio line reveal. */

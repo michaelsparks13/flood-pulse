@@ -12,12 +12,11 @@ import CountryGapBar from "@/components/story/CountryGapBar";
 import CountryGapCard from "@/components/story/CountryGapCard";
 import IntroPanel from "@/components/story/IntroPanel";
 import ScrollHint from "@/components/story/ScrollHint";
-import CountryCompareDivider from "@/components/story/CountryCompareDivider";
 import CountryHeadlines from "@/components/story/CountryHeadlines";
+import CountryYearCompare from "@/components/story/CountryYearCompare";
+import DataLoadingIndicator from "@/components/story/DataLoadingIndicator";
 import { useActDataState } from "@/components/story/useActDataState";
-import { useScrollVelocity } from "@/components/story/useScrollVelocity";
 import { useReducedMotion } from "@/components/story/useReducedMotion";
-import { useGlobe } from "@/context/GlobeContext";
 import { byIso3 } from "@/lib/story/countryComparison";
 import { COUNTRY_SEQUENCE } from "@/lib/story/acts";
 
@@ -38,17 +37,6 @@ export default function Home() {
   } = useActDataState();
 
   const reducedMotion = useReducedMotion();
-
-  const { mapRef } = useGlobe();
-  const velocityEnabled = activeActId === "old-map" || activeActId === "reveal";
-  useScrollVelocity((velocity) => {
-    const map = mapRef.current;
-    if (!map) return;
-    const delta = Math.max(-0.4, Math.min(0.4, velocity * 0.3));
-    if (Math.abs(delta) > 0.01) {
-      map.setBearing(map.getBearing() + delta);
-    }
-  }, velocityEnabled);
 
   const chipVisible = [
     "ratio",
@@ -90,14 +78,13 @@ export default function Home() {
         highlightHex={dataState.highlightHex}
         datasetFilter={dataState.datasetFilter}
         countryFilter={dataState.countryFilter}
-        compareMode={dataState.compareMode}
-        compareLng={dataState.compareLng}
       />
       <DatasetRevealLayer progress={revealProgress} reducedMotion={reducedMotion} />
       <DatasetCounter
         progress={revealProgress}
-        gfdPe={GFD_PE_MATCHED}
-        fpPe={FP_PE_MATCHED}
+        fromValue={GFD_PE_MATCHED}
+        toValue={FP_PE_MATCHED}
+        label="People in flooded areas, 2000–2025"
         visible={activeActId === "reveal"}
       />
       <RatioLineChart
@@ -123,10 +110,14 @@ export default function Home() {
       />
       <IntroPanel visible={activeActId === "old-map"} />
       <ScrollHint visible={activeActId === "old-map"} />
-      <CountryCompareDivider visible={activeActId === "three-stories"} />
+      <CountryYearCompare
+        iso3={activeCountry?.iso3 ?? null}
+        visible={activeActId === "three-stories"}
+      />
       <StoryProgressChip summary={summary} year={dataState.year} visible={chipVisible} />
       <StoryContainer onActChange={handleActChange} />
       <HandoffButton visible={activeActId === "handoff"} />
+      <DataLoadingIndicator />
     </>
   );
 }

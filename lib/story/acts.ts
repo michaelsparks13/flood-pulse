@@ -10,27 +10,27 @@ import {
 export const ACTS: ActDefinition[] = [
   {
     id: "old-map",
-    ariaTitle: "Act 1: How the world kept track of floods",
-    copy: "For twenty-five years, this was the world's record of floods — a patchwork of satellite passes, curated archives, and emergency alerts. About 10,000 events between 2000 and 2025: the ones visible from orbit, reportable by local media, or severe enough to trigger an international response.",
+    ariaTitle: "Act 1: What the old catalogs saw",
+    copy: "For the first quarter of this century, three catalogs tried to keep track of every flood on Earth — Dartmouth Flood Observatory, the Global Flood Database, and GDACS. Every blue cell below is a hex they flagged; the brighter the blue, the more people were caught in that patch. Across twenty-five years, they logged about 290 million exposed — most of them in river basins that catalogs had already learned to watch.",
     camera: GLOBE_NEUTRAL,
     data: {
-      year: 2018,
+      year: 2025,
       mapMode: "exposure",
-      hexOpacity: 0.75,
+      hexOpacity: 0.9,
       datasetFilter: "trad",
     },
   },
   {
     id: "reveal",
-    ariaTitle: "Act 2: What the news saw",
+    ariaTitle: "Act 2: What the news revealed",
     copy: [
-      "Then Google's researchers tried something different.",
-      "They trained a language model to read local news in forty languages and pull out every flood it could find.",
-      "2.6 million flood events. 2.88 billion people in flooded areas — ten times what the traditional catalogs caught.",
+      "Then Google Research trained a model to read local news in forty languages.",
+      "It found floods the satellites missed, in villages the curators never logged.",
+      "2.88 billion people in flooded areas — roughly ten times what the old catalogs caught.",
     ],
     camera: GLOBE_NEUTRAL,
     data: {
-      year: 2018,
+      year: 2025,
       mapMode: "exposure",
       hexOpacity: 0.9,
       datasetFilter: "all",

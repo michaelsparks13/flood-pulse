@@ -47,13 +47,13 @@ export function useActDataState() {
     const act = ACTS.find((a) => a.id === activeActId) ?? ACTS[0];
     const base = { ...act.data };
     // Three-stories: scope the hex layer to the currently-scrolled country
-    // and enable the split-screen old-vs-new comparison.
+    // and render both datasets side-by-side within the single layer —
+    // trad hexes blue (trad_p), news-only hexes magma (fp_p).
     if (act.id === "three-stories" && activeCountryIndex >= 0) {
       const country = COUNTRY_SEQUENCE[activeCountryIndex];
       base.countryFilter = country.iso3;
       base.countryGapIso3 = country.iso3;
-      base.compareMode = "trad-vs-fp";
-      base.compareLng = country.camera.center[0];
+      base.datasetFilter = "trad-split";
     }
     if (!act.progressDriven) return base;
     const clamped = Math.max(0, Math.min(1, actProgress));
