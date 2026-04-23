@@ -8,7 +8,7 @@ import { H3HexagonLayer } from "@deck.gl/geo-layers";
 import { DataFilterExtension } from "@deck.gl/extensions";
 import { cellToLatLng } from "h3-js";
 import type { MapMode, HexDatum, HexCompactJSON } from "@/lib/types";
-import { getExposureRGBA, getFrequencyRGBA, getConfidenceBlendedRGBA, getBlueExposureRGBA } from "@/lib/colors";
+import { getExposureRGBA, getFrequencyRGBA, getConfidenceBlendedRGBA } from "@/lib/colors";
 import { useGlobe } from "@/context/GlobeContext";
 
 function formatPopulation(n: number): string {
@@ -348,8 +348,6 @@ export default function Globe({
     if (!hexData) return;
 
     const alpha = Math.round(hexOpacity * 255);
-    const tradAlpha = Math.round(hexOpacity * 235);
-    const fpOnlyAlpha = Math.round(hexOpacity * 230);
 
     // GPU country filter: flipping `countryFilter` rewrites a filterRange
     // uniform rather than re-running getFillColor across 430k hexes, which is
@@ -381,16 +379,14 @@ export default function Globe({
 
     // Frequency / confidence modes still need the per-hex color accessor
     // since their values depend on per-hex fields. For the exposure mode
-    // (Acts 1–6) we paint deterministically: isTrad → blue on trad_p, else
-    // magma on p. No datasetFilter branching, so mode switches don't force
-    // deck.gl to re-run the accessor across every hex.
+    // (Acts 1–6) both catalogs share the magma ramp so visuals compare
+    // apples-to-apples — the old view reads as dim because the trad
+    // catalogs flagged far fewer hexes, not because the color scheme
+    // pretends their populations are smaller.
     const staticExposurePaint = (d: HexDatum): [number, number, number, number] => {
-      if (d.trad_y0 != null) {
-        const [r, g, b] = getBlueExposureRGBA(d.trad_p ?? 0);
-        return [r, g, b, tradAlpha];
-      }
-      const [r, g, b] = getExposureRGBA(d.p);
-      return [r, g, b, fpOnlyAlpha];
+      const pop = d.trad_y0 != null ? d.trad_p ?? 0 : d.p;
+      const [r, g, b] = getExposureRGBA(pop);
+      return [r, g, b, alpha];
     };
     const dynamicPaint = (d: HexDatum): [number, number, number, number] => {
       if (mapMode === "frequency") {

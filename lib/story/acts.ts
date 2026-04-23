@@ -11,7 +11,7 @@ export const ACTS: ActDefinition[] = [
   {
     id: "old-map",
     ariaTitle: "Act 1: What the old catalogs saw",
-    copy: "For the first quarter of this century, three catalogs tried to keep track of every flood on Earth — Dartmouth Flood Observatory, the Global Flood Database, and GDACS. Every blue cell below is a hex they flagged; the brighter the blue, the more people were caught in that patch. Across twenty-five years, they logged about 290 million exposed — most of them in river basins that catalogs had already learned to watch.",
+    copy: "For the first quarter of this century, three catalogs tried to keep track of every flood on Earth — Dartmouth Flood Observatory, the Global Flood Database, and GDACS. Every lit cell below is a hex their polygons touched, colored by how many people live there. Across twenty-five years, the three catalogs collectively flagged the areas of about 290 million people — mostly big river basins that remote sensing had already learned to watch.",
     camera: GLOBE_NEUTRAL,
     data: {
       year: 2025,
