@@ -66,7 +66,11 @@ export function GlobeProvider({ children }: { children: ReactNode }) {
           right: 0,
           bottom: 0,
           zIndex: 0,
-          pointerEvents: "auto",
+          // Pointer events re-enabled only once a map attaches (MapLibre's
+          // own canvas has pointer-events:auto). With no map, the host stays
+          // transparent so elements behind it (e.g. the home page's
+          // DualGlobe) stay interactive.
+          pointerEvents: "none",
         }}
       />
       {children}

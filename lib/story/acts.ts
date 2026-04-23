@@ -10,11 +10,11 @@ import {
 export const ACTS: ActDefinition[] = [
   {
     id: "old-map",
-    ariaTitle: "Act 1: What the old catalogs saw",
-    copy: "For the first quarter of this century, three catalogs tried to keep track of every flood on Earth — Dartmouth Flood Observatory, the Global Flood Database, and GDACS. Every lit cell below is a hex their polygons touched, colored by how many people live there. Across twenty-five years, the three catalogs collectively flagged the areas of about 290 million people — mostly big river basins that remote sensing had already learned to watch.",
+    ariaTitle: "Act 1: Same year, two data worlds",
+    copy: "The same year of floods, side-by-side. On the left, every hex the three traditional catalogs — Dartmouth Flood Observatory, the Global Flood Database, GDACS — flagged that year, colored by how many people the polygons caught. On the right, the same year read out of local news by Google Research's Groundsource model. Drag the slider to change the year. Scroll to fly into the places where the gap matters most.",
     camera: GLOBE_NEUTRAL,
     data: {
-      year: 2025,
+      year: 2020,
       mapMode: "exposure",
       hexOpacity: 0.9,
       datasetFilter: "trad",

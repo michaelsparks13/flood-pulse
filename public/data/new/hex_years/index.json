@@ -1,0 +1,163 @@
+{
+  "generated": "2026-04-23T01:50:30Z",
+  "source": "new",
+  "inundationRatio": 0.1,
+  "years": [
+    {
+      "year": 2000,
+      "hexCount": 294,
+      "exposed": 5142963,
+      "sizeKb": 8.9
+    },
+    {
+      "year": 2001,
+      "hexCount": 453,
+      "exposed": 9244346,
+      "sizeKb": 13.7
+    },
+    {
+      "year": 2002,
+      "hexCount": 642,
+      "exposed": 5173941,
+      "sizeKb": 19.3
+    },
+    {
+      "year": 2003,
+      "hexCount": 457,
+      "exposed": 5841533,
+      "sizeKb": 13.8
+    },
+    {
+      "year": 2004,
+      "hexCount": 2066,
+      "exposed": 30445411,
+      "sizeKb": 62.7
+    },
+    {
+      "year": 2005,
+      "hexCount": 3606,
+      "exposed": 46373974,
+      "sizeKb": 109.1
+    },
+    {
+      "year": 2006,
+      "hexCount": 3898,
+      "exposed": 50544952,
+      "sizeKb": 118.0
+    },
+    {
+      "year": 2007,
+      "hexCount": 7550,
+      "exposed": 91266417,
+      "sizeKb": 228.6
+    },
+    {
+      "year": 2008,
+      "hexCount": 8381,
+      "exposed": 101157120,
+      "sizeKb": 253.6
+    },
+    {
+      "year": 2009,
+      "hexCount": 10526,
+      "exposed": 125235650,
+      "sizeKb": 318.1
+    },
+    {
+      "year": 2010,
+      "hexCount": 18355,
+      "exposed": 181875684,
+      "sizeKb": 553.4
+    },
+    {
+      "year": 2011,
+      "hexCount": 15629,
+      "exposed": 158668982,
+      "sizeKb": 469.9
+    },
+    {
+      "year": 2012,
+      "hexCount": 19170,
+      "exposed": 192798824,
+      "sizeKb": 577.4
+    },
+    {
+      "year": 2013,
+      "hexCount": 25753,
+      "exposed": 259826878,
+      "sizeKb": 774.7
+    },
+    {
+      "year": 2014,
+      "hexCount": 25693,
+      "exposed": 262741452,
+      "sizeKb": 772.9
+    },
+    {
+      "year": 2015,
+      "hexCount": 29913,
+      "exposed": 289203355,
+      "sizeKb": 898.9
+    },
+    {
+      "year": 2016,
+      "hexCount": 34953,
+      "exposed": 336168217,
+      "sizeKb": 1049.9
+    },
+    {
+      "year": 2017,
+      "hexCount": 35904,
+      "exposed": 344909177,
+      "sizeKb": 1077.6
+    },
+    {
+      "year": 2018,
+      "hexCount": 41958,
+      "exposed": 387260610,
+      "sizeKb": 1258.3
+    },
+    {
+      "year": 2019,
+      "hexCount": 44147,
+      "exposed": 405197080,
+      "sizeKb": 1324.5
+    },
+    {
+      "year": 2020,
+      "hexCount": 46325,
+      "exposed": 444838412,
+      "sizeKb": 1391.8
+    },
+    {
+      "year": 2021,
+      "hexCount": 46003,
+      "exposed": 437754320,
+      "sizeKb": 1381.2
+    },
+    {
+      "year": 2022,
+      "hexCount": 48647,
+      "exposed": 448508357,
+      "sizeKb": 1459.8
+    },
+    {
+      "year": 2023,
+      "hexCount": 54477,
+      "exposed": 495148110,
+      "sizeKb": 1633.9
+    },
+    {
+      "year": 2024,
+      "hexCount": 69677,
+      "exposed": 587062786,
+      "sizeKb": 2089.6
+    },
+    {
+      "year": 2025,
+      "hexCount": 61341,
+      "exposed": 557037496,
+      "sizeKb": 1839.5
+    }
+  ]
+}

@@ -1,43 +1,45 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import StoryContainer from "@/components/story/StoryContainer";
 import StoryProgressChip from "@/components/story/StoryProgressChip";
 import HandoffButton from "@/components/story/HandoffButton";
-import DatasetRevealLayer from "@/components/story/DatasetRevealLayer";
-import DatasetCounter from "@/components/story/DatasetCounter";
-import RatioLineChart from "@/components/story/RatioLineChart";
-import CountryGapBar from "@/components/story/CountryGapBar";
 import CountryGapCard from "@/components/story/CountryGapCard";
 import IntroPanel from "@/components/story/IntroPanel";
 import ScrollHint from "@/components/story/ScrollHint";
 import CountryHeadlines from "@/components/story/CountryHeadlines";
-import CountryYearCompare from "@/components/story/CountryYearCompare";
-import DataLoadingIndicator from "@/components/story/DataLoadingIndicator";
+import YearScrubber from "@/components/story/YearScrubber";
 import { useActDataState } from "@/components/story/useActDataState";
-import { useReducedMotion } from "@/components/story/useReducedMotion";
 import { byIso3 } from "@/lib/story/countryComparison";
-import { COUNTRY_SEQUENCE } from "@/lib/story/acts";
+import { COUNTRY_SEQUENCE, ACTS } from "@/lib/story/acts";
 
-const Globe = dynamic(() => import("@/components/Globe"), { ssr: false });
+const DualGlobe = dynamic(() => import("@/components/DualGlobe"), { ssr: false });
 
-const GFD_PE_MATCHED = 290_000_000;
-const FP_PE_MATCHED = 2_880_000_000;
+const DEFAULT_YEAR = 2020;
 
 export default function Home() {
   const {
     activeActId,
-    dataState,
     summary,
     comparison,
-    ratio,
     activeCountryIndex,
     handleActChange,
   } = useActDataState();
 
-  const reducedMotion = useReducedMotion();
+  const [year, setYear] = useState<number>(DEFAULT_YEAR);
 
+  // Active act → camera keyframe for both panes.
+  const activeCamera = useMemo(() => {
+    const act = ACTS.find((a) => a.id === activeActId);
+    if (!act) return null;
+    if (activeActId === "three-stories" && activeCountryIndex >= 0) {
+      return COUNTRY_SEQUENCE[activeCountryIndex].camera;
+    }
+    return act.camera;
+  }, [activeActId, activeCountryIndex]);
+
+  // Keep the StoryProgressChip in sync with the scrubber.
   const chipVisible = [
     "ratio",
     "why",
@@ -45,10 +47,6 @@ export default function Home() {
     "three-stories",
     "handoff",
   ].includes(activeActId);
-
-  const revealProgress = dataState.revealProgress ?? 0;
-  const ratioProgress = dataState.ratioProgress ?? 0;
-  const ladderProgress = dataState.ladderProgress ?? 0;
 
   const activeCountry = useMemo(() => {
     if (activeActId !== "three-stories" || activeCountryIndex < 0) return null;
@@ -60,6 +58,21 @@ export default function Home() {
     return byIso3(comparison, activeCountry.iso3);
   }, [comparison, activeCountry]);
 
+  // Country-scope both panes when Act 6 is in view.
+  const paneCountryFilter =
+    activeActId === "three-stories" && activeCountry ? activeCountry.iso3 : undefined;
+
+  // Force the /explore link to prefetch on mount so the handoff feels instant.
+  useEffect(() => {
+    const img = document.createElement("link");
+    img.rel = "prefetch";
+    img.href = "/explore";
+    document.head.appendChild(img);
+    return () => {
+      img.remove();
+    };
+  }, []);
+
   return (
     <>
       <a
@@ -68,36 +81,10 @@ export default function Home() {
       >
         Skip to interactive explorer
       </a>
-      <Globe
-        year={dataState.year}
-        mapMode={dataState.mapMode}
-        showBoundaries
-        showLabels={false}
-        satellite={false}
-        hexOpacity={dataState.hexOpacity}
-        highlightHex={dataState.highlightHex}
-        datasetFilter={dataState.datasetFilter}
-        countryFilter={dataState.countryFilter}
-      />
-      <DatasetRevealLayer progress={revealProgress} reducedMotion={reducedMotion} />
-      <DatasetCounter
-        progress={revealProgress}
-        fromValue={GFD_PE_MATCHED}
-        toValue={FP_PE_MATCHED}
-        label="People in flooded areas, 2000–2025"
-        visible={activeActId === "reveal"}
-      />
-      <RatioLineChart
-        progress={ratioProgress}
-        years={ratio?.calibration_gfd.years ?? []}
-        ratios={ratio?.calibration_gfd.pe_ratio ?? []}
-        lowConfidenceYears={ratio?.low_confidence_years ?? []}
-        visible={activeActId === "ratio"}
-      />
-      <CountryGapBar
-        data={comparison}
-        progress={ladderProgress}
-        visible={activeActId === "ladder"}
+      <DualGlobe
+        year={year}
+        countryFilter={paneCountryFilter}
+        camera={activeCamera}
       />
       <CountryGapCard
         iso3={activeCountry?.iso3 ?? null}
@@ -110,14 +97,10 @@ export default function Home() {
       />
       <IntroPanel visible={activeActId === "old-map"} />
       <ScrollHint visible={activeActId === "old-map"} />
-      <CountryYearCompare
-        iso3={activeCountry?.iso3 ?? null}
-        visible={activeActId === "three-stories"}
-      />
-      <StoryProgressChip summary={summary} year={dataState.year} visible={chipVisible} />
+      <StoryProgressChip summary={summary} year={year} visible={chipVisible} />
       <StoryContainer onActChange={handleActChange} />
       <HandoffButton visible={activeActId === "handoff"} />
-      <DataLoadingIndicator />
+      <YearScrubber year={year} onYearChange={setYear} />
     </>
   );
 }
