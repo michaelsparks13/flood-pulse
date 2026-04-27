@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import type { CountryComparisonEntry } from "@/lib/types";
 import { peaksByIso3 } from "@/lib/story/countryYearPeaks";
 
@@ -17,10 +18,24 @@ function formatPE(n: number | null): string {
   return n.toLocaleString();
 }
 
+function formatRatio(r: number): string {
+  return r >= 10 ? `${Math.round(r)}×` : `${r.toFixed(1)}×`;
+}
+
 export default function CountryGapCard({ iso3, entry, visible }: CountryGapCardProps) {
-  // Prefer the per-country peaks data (merged DFO+GFD+GDACS over 2014–2025).
-  // It's what the side-by-side map actually shows, so the card numbers align
-  // with what the user is seeing geographically.
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 639px)");
+    const update = () => setIsMobile(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
+
+  // Prefer the per-country peaks data (merged DFO+GFD+GDACS over 2014–2025) —
+  // it matches what the side-by-side map shows, so card numbers align with
+  // the geography on screen.
   const peaks = peaksByIso3(iso3);
 
   const name = peaks?.name ?? entry?.name ?? "";
@@ -33,50 +48,84 @@ export default function CountryGapCard({ iso3, entry, visible }: CountryGapCardP
 
   const show = Boolean(visible && iso3 && (peaks || entry));
 
+  // Mobile: minimal pill — just the country + the headline gap multiplier.
+  if (isMobile) {
+    return (
+      <div
+        aria-live="polite"
+        aria-atomic="true"
+        style={{
+          position: "fixed",
+          top: 56,
+          right: 12,
+          zIndex: 20,
+          opacity: show ? 1 : 0,
+          transform: show ? "translateY(0)" : "translateY(-8px)",
+          transition: "opacity 300ms ease, transform 300ms ease",
+          pointerEvents: "none",
+        }}
+        className="bg-panel-solid/85 backdrop-blur-md rounded-full border border-border px-3 py-1.5 flex items-baseline gap-2"
+      >
+        {show && iso3 ? (
+          <>
+            <span className="text-xs text-text-secondary">{name}</span>
+            {ratio != null && ratio > 0 && (
+              <span className="text-sm font-semibold font-mono text-text-primary">
+                {formatRatio(ratio)}
+              </span>
+            )}
+          </>
+        ) : (
+          <span style={{ width: 1 }} />
+        )}
+      </div>
+    );
+  }
+
+  // Desktop: compact card (~40% smaller than before).
   return (
     <div
       aria-live="polite"
       aria-atomic="true"
       style={{
         position: "fixed",
-        top: "96px",
-        right: "32px",
+        top: 80,
+        right: 24,
         zIndex: 20,
-        width: "min(320px, 80vw)",
+        width: "min(200px, 60vw)",
         opacity: show ? 1 : 0,
         transform: show ? "translateY(0)" : "translateY(-12px)",
         transition: "opacity 300ms ease, transform 300ms ease",
         pointerEvents: "none",
       }}
-      className="bg-panel-solid/85 backdrop-blur-md rounded-2xl border border-border p-5"
+      className="bg-panel-solid/85 backdrop-blur-md rounded-xl border border-border p-3"
     >
       {show && iso3 ? (
         <>
-          <div className="text-xs text-text-tertiary">{iso3}</div>
-          <div className="text-lg font-semibold text-text-primary mt-0.5">{name}</div>
-          <div className="text-[10px] uppercase tracking-[0.14em] text-text-tertiary mt-1">
-            {windowLabel} totals
+          <div className="text-sm font-semibold text-text-primary">{name}</div>
+          <div className="text-[9px] uppercase tracking-[0.14em] text-text-tertiary mt-0.5">
+            {windowLabel}
           </div>
-          <div className="mt-3 space-y-2 text-sm">
+          <div className="mt-2 space-y-1.5 text-[11px]">
             <div className="flex items-center justify-between">
-              <span className="text-[#22d3ee]">Traditional catalogs</span>
+              <span className="text-[#22d3ee]">Traditional</span>
               <span className="font-mono text-text-primary">{formatPE(tradVal)}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-[#ef8a62]">Flood Pulse</span>
+              <span className="text-[#ef8a62]">Groundsource</span>
               <span className="font-mono text-text-primary">{formatPE(fpVal)}</span>
             </div>
             {ratio != null && ratio > 0 && (
-              <div className="flex items-center justify-between pt-2 border-t border-border/50">
+              <div className="flex items-center justify-between pt-1.5 border-t border-border/50">
                 <span className="text-text-secondary">Gap</span>
-                <span className="font-mono text-text-primary">
-                  {ratio >= 10 ? `${Math.round(ratio)}×` : `${ratio.toFixed(1)}×`} more found
+                <span className="font-mono text-text-primary font-semibold">
+                  {formatRatio(ratio)} more
                 </span>
               </div>
             )}
             {tradVal === null && (
-              <div className="pt-2 border-t border-border/50 text-text-secondary text-xs">
-                Zero events in the traditional catalogs, {windowLabel}.
+              <div className="pt-1.5 border-t border-border/50 text-text-tertiary text-[10px]">
+                Zero in traditional catalogs, {windowLabel}.
               </div>
             )}
           </div>

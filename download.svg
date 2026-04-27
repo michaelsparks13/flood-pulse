@@ -1,0 +1,19 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <rect width="512" height="512" rx="96" fill="#071923"></rect>
+
+  <!-- rain -->
+  <g stroke="#7AD7FF" stroke-width="18" stroke-linecap="round" opacity="0.9">
+    <path d="M154 84l-28 52"></path>
+    <path d="M254 64l-28 52"></path>
+    <path d="M354 84l-28 52"></path>
+  </g>
+
+  <!-- house -->
+  <path d="M138 260L256 160l118 100v132H138V260z" fill="#EAF6FA"></path>
+  <path d="M116 264L256 146l140 118" fill="none" stroke="#EAF6FA" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"></path>
+  <rect x="224" y="300" width="64" height="92" rx="8" fill="#071923"></rect>
+
+  <!-- flood water -->
+  <path d="M70 354c38-32 76-32 114 0s76 32 114 0 76-32 114 0 58 32 78 18v70H70v-88z" fill="#1BA6C9"></path>
+  <path d="M70 384c38-32 76-32 114 0s76 32 114 0 76-32 114 0 58 32 78 18" fill="none" stroke="#7AD7FF" stroke-width="18" stroke-linecap="round"></path>
+</svg>

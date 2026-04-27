@@ -16,7 +16,7 @@ import type { GlobalSummary, MapMode } from "@/lib/types";
 const Globe = dynamic(() => import("@/components/Globe"), { ssr: false });
 
 export default function Home() {
-  const [year, setYear] = useState(2026);
+  const [year, setYear] = useState(2025);
   const [playing, setPlaying] = useState(false);
   const [summary, setSummary] = useState<GlobalSummary | null>(null);
   const [methodologyOpen, setMethodologyOpen] = useState(false);

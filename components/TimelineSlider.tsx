@@ -12,7 +12,7 @@ interface TimelineSliderProps {
 }
 
 const MIN_YEAR = 2000;
-const MAX_YEAR = 2026;
+const MAX_YEAR = 2025;
 const PLAY_INTERVAL_MS = 600;
 const LOOP_PAUSE_MS = 1400; // brief pause at the end before looping back
 

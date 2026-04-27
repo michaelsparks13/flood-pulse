@@ -3,13 +3,11 @@
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
 import StoryContainer from "@/components/story/StoryContainer";
-import StoryProgressChip from "@/components/story/StoryProgressChip";
 import HandoffButton from "@/components/story/HandoffButton";
 import CountryGapCard from "@/components/story/CountryGapCard";
 import IntroPanel from "@/components/story/IntroPanel";
 import ScrollHint from "@/components/story/ScrollHint";
-import CountryHeadlines from "@/components/story/CountryHeadlines";
-import YearScrubber from "@/components/story/YearScrubber";
+import YearTitle from "@/components/story/YearTitle";
 import { useActDataState } from "@/components/story/useActDataState";
 import { byIso3 } from "@/lib/story/countryComparison";
 import { COUNTRY_SEQUENCE, ACTS } from "@/lib/story/acts";
@@ -22,7 +20,6 @@ const DEFAULT_YEAR = 2020;
 export default function Home() {
   const {
     activeActId,
-    summary,
     comparison,
     activeCountryIndex,
     handleActChange,
@@ -40,15 +37,6 @@ export default function Home() {
     return act.camera;
   }, [activeActId, activeCountryIndex]);
 
-  // Keep the StoryProgressChip in sync with the scrubber.
-  const chipVisible = [
-    "ratio",
-    "why",
-    "ladder",
-    "three-stories",
-    "handoff",
-  ].includes(activeActId);
-
   const activeCountry = useMemo(() => {
     if (activeActId !== "three-stories" || activeCountryIndex < 0) return null;
     return COUNTRY_SEQUENCE[activeCountryIndex];
@@ -63,19 +51,20 @@ export default function Home() {
   const paneCountryFilter =
     activeActId === "three-stories" && activeCountry ? activeCountry.iso3 : undefined;
 
-  // Sync the slider to each country's strongest FP year as we scroll
-  // through Act 6. Without this, the slider sits at DEFAULT_YEAR (2020) and
-  // the side-by-side map shows a year where the gap between OLD and NEW is
-  // less visually dramatic for some countries (e.g. Bangladesh, Kenya).
-  // User can still drag the slider to override during a country chapter;
-  // it resets on transition to the next country.
+  // Drive the displayed year from the active act. Act 5 (three-stories)
+  // overrides per-country to each country's strongest FP year so the
+  // side-by-side map shows the year with the most dramatic OLD-vs-NEW gap.
   useEffect(() => {
-    if (activeActId !== "three-stories") return;
-    if (!activeCountry) return;
-    const peaks = peaksByIso3(activeCountry.iso3);
-    if (!peaks || peaks.peakYears.length === 0) return;
-    const peakYear = peaks.peakYears.reduce((a, b) => (a.fp > b.fp ? a : b)).year;
-    setYear(peakYear);
+    if (activeActId === "three-stories" && activeCountry) {
+      const peaks = peaksByIso3(activeCountry.iso3);
+      if (peaks && peaks.peakYears.length > 0) {
+        const peakYear = peaks.peakYears.reduce((a, b) => (a.fp > b.fp ? a : b)).year;
+        setYear(peakYear);
+        return;
+      }
+    }
+    const act = ACTS.find((a) => a.id === activeActId);
+    if (act?.data?.year) setYear(act.data.year);
   }, [activeActId, activeCountry]);
 
   // Force the /explore link to prefetch on mount so the handoff feels instant.
@@ -107,16 +96,11 @@ export default function Home() {
         entry={activeCountryEntry}
         visible={activeActId === "three-stories"}
       />
-      <CountryHeadlines
-        iso3={activeCountry?.iso3 ?? null}
-        visible={activeActId === "three-stories"}
-      />
       <IntroPanel visible={activeActId === "old-map"} />
       <ScrollHint visible={activeActId === "old-map"} />
-      <StoryProgressChip summary={summary} year={year} visible={chipVisible} />
+      <YearTitle year={year} />
       <StoryContainer onActChange={handleActChange} />
       <HandoffButton visible={activeActId === "handoff"} />
-      <YearScrubber year={year} onYearChange={setYear} />
     </>
   );
 }

@@ -108,7 +108,7 @@ export default function DualGlobe({
           onMapReady={onRightReady}
           onCameraMove={syncFromRight}
         />
-        <PaneBadge label="Flood Pulse" sub="Groundsource news ingestion" side="right" />
+        <PaneBadge label="Groundsource" sub="Google Research news ingestion" side="right" />
       </div>
       {/* Visible divider between panes. Rendered as its own layer so it sits
           on top of both map canvases. */}

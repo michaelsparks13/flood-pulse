@@ -5,12 +5,14 @@ import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { MapboxOverlay } from "@deck.gl/mapbox";
 import { H3HexagonLayer } from "@deck.gl/geo-layers";
+import { TextLayer } from "@deck.gl/layers";
 import { getExposureRGBA } from "@/lib/colors";
 import {
   loadHexYear,
   type HexYearlyRow,
   type HexYearlySource,
 } from "@/lib/data/hexYearly";
+import { TOP_COUNTRIES } from "@/lib/topCountries";
 
 interface GlobePaneProps {
   source: HexYearlySource;
@@ -165,13 +167,19 @@ export default function GlobePane({
     const hexData = hexDataRef.current;
     if (!hexData) return;
 
-    // Per-year data is small (<50k hexes), so CPU-side country filtering is
-    // cheap — it just narrows the array before deck.gl builds GPU buffers.
-    // Avoids DataFilterExtension's edge-case behavior when no categories are
-    // set (which would silently hide everything).
-    const data = countryFilter
+    // OLD has many low-PE rural cells from DFO's huge polygons that, after
+    // res-6 polyfill, populate sparse rainforest / desert hexes. They aggregate
+    // visually into "blocky" polygon-shaped blobs at world zoom and obscure
+    // the population-exposure story. Drop them so OLD reads like NEW: only
+    // hexes with meaningful exposure remain. NEW's median PE is ~1880, so a
+    // 2000 threshold lines OLD up to a similar density.
+    const OLD_PE_THRESHOLD = 2000;
+    let data = countryFilter
       ? hexData.filter((d) => d.cc === countryFilter)
       : hexData;
+    if (source === "old") {
+      data = data.filter((d) => d.p >= OLD_PE_THRESHOLD);
+    }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const layer = new (H3HexagonLayer as any)({
@@ -226,15 +234,36 @@ export default function GlobePane({
       },
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const labelLayer = new (TextLayer as any)({
+      id: `country-labels-${source}`,
+      data: TOP_COUNTRIES,
+      getPosition: (d: { lon: number; lat: number }) => [d.lon, d.lat],
+      getText: (d: { name: string }) => d.name,
+      getSize: 11,
+      getColor: [220, 220, 230, 178],
+      getTextAnchor: "middle",
+      getAlignmentBaseline: "center",
+      fontFamily:
+        "system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
+      fontWeight: 500,
+      outlineWidth: 2,
+      outlineColor: [7, 6, 13, 230],
+      fontSettings: { sdf: true },
+      pickable: false,
+      sizeUnits: "pixels",
+      sizeScale: 1,
+    });
+
     if (!overlayRef.current) {
       const overlay = new MapboxOverlay({
         interleaved: false,
-        layers: [layer],
+        layers: [layer, labelLayer],
       });
       map.addControl(overlay as unknown as maplibregl.IControl);
       overlayRef.current = overlay;
     } else {
-      overlayRef.current.setProps({ layers: [layer] });
+      overlayRef.current.setProps({ layers: [layer, labelLayer] });
     }
   }, [basemapReady, dataReady, source, year, countryFilter]);
 
