@@ -13,6 +13,7 @@ import YearScrubber from "@/components/story/YearScrubber";
 import { useActDataState } from "@/components/story/useActDataState";
 import { byIso3 } from "@/lib/story/countryComparison";
 import { COUNTRY_SEQUENCE, ACTS } from "@/lib/story/acts";
+import { peaksByIso3 } from "@/lib/story/countryYearPeaks";
 
 const DualGlobe = dynamic(() => import("@/components/DualGlobe"), { ssr: false });
 
@@ -61,6 +62,21 @@ export default function Home() {
   // Country-scope both panes when Act 6 is in view.
   const paneCountryFilter =
     activeActId === "three-stories" && activeCountry ? activeCountry.iso3 : undefined;
+
+  // Sync the slider to each country's strongest FP year as we scroll
+  // through Act 6. Without this, the slider sits at DEFAULT_YEAR (2020) and
+  // the side-by-side map shows a year where the gap between OLD and NEW is
+  // less visually dramatic for some countries (e.g. Bangladesh, Kenya).
+  // User can still drag the slider to override during a country chapter;
+  // it resets on transition to the next country.
+  useEffect(() => {
+    if (activeActId !== "three-stories") return;
+    if (!activeCountry) return;
+    const peaks = peaksByIso3(activeCountry.iso3);
+    if (!peaks || peaks.peakYears.length === 0) return;
+    const peakYear = peaks.peakYears.reduce((a, b) => (a.fp > b.fp ? a : b)).year;
+    setYear(peakYear);
+  }, [activeActId, activeCountry]);
 
   // Force the /explore link to prefetch on mount so the handoff feels instant.
   useEffect(() => {

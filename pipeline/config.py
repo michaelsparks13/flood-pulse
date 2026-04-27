@@ -79,7 +79,14 @@ def ensure_dirs() -> None:
 # H3
 # ---------------------------------------------------------------------------
 
-H3_RESOLUTION: int = 5  # ~252 km² per hex — good for global view
+H3_RESOLUTION: int = 5  # ~252 km² per hex — good for global view (Flood Pulse / Groundsource)
+
+# Traditional catalogs (DFO + GFD + GDACS) hex resolution. Bumped to res-6
+# so DFO's hand-curated giant polygons break into a finer-grained mesh that
+# (a) doesn't visually dominate populated regions and (b) drops sparsely-
+# populated cells under MIN_EXPOSED, matching the actual on-the-ground
+# population-exposed picture.
+H3_RESOLUTION_TRAD: int = 6  # ~36 km² per hex
 
 # Area of a single H3 res-5 hexagon in km²
 H3_RES5_AREA_KM2: float = 252.903858

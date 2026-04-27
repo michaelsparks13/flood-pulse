@@ -3,7 +3,7 @@ import {
   GLOBE_NEUTRAL,
   GLOBE_PULLED_BACK,
   CONGO_BASIN,
-  DRC,
+  BANGLADESH,
   COUNTRY_SEQUENCE,
 } from "./cameraKeyframes";
 
@@ -26,7 +26,7 @@ export const ACTS: ActDefinition[] = [
     copy: [
       "Then Google Research trained a model to read local news in forty languages.",
       "It found floods the satellites missed, in villages the curators never logged.",
-      "2.88 billion people in flooded areas — roughly ten times what the old catalogs caught.",
+      "2.6 million flood events — more than two hundred times what the old catalogs flagged in twenty-five years.",
     ],
     camera: GLOBE_NEUTRAL,
     data: {
@@ -41,7 +41,7 @@ export const ACTS: ActDefinition[] = [
   {
     id: "ratio",
     ariaTitle: "Act 3: The gap, year by year",
-    copy: "The gap gets bigger every year. By 2018, Flood Pulse was finding thirty-two times more people in flooded areas than the satellite catalog could see — and the older methods aren't getting worse. They're just holding steady as the world keeps flooding.",
+    copy: "By 2018, the merged traditional catalogs caught 215 million people in flooded areas worldwide. Flood Pulse caught 387 million in the same year — and the gap is widest where it matters most: countries with sparse satellite coverage, thin government reporting, news the rest of the world never sees. The older methods aren't getting worse. The world is just bigger than what they can see.",
     camera: GLOBE_NEUTRAL,
     data: {
       year: 2018,
@@ -82,17 +82,17 @@ export const ACTS: ActDefinition[] = [
     id: "three-stories",
     ariaTitle: "Act 6: Three stories",
     copy: [
-      "DRC — zero floods in the satellite catalog, 2000 to 2018. The Congo basin is under clouds, under canopy, and under-reported. A perfect storm of invisibility.",
-      "Bangladesh — the world's most satellite-observable delta, with one of the densest gauge networks in the Global South. Even here, Flood Pulse found twice the exposure the satellites logged.",
-      "Brazil — satellites attributed 340,000 people flooded across 2000–2018. Flood Pulse read local Portuguese news in every state and found 96 million. A 283× gap, almost all of it in the Amazon and the interior.",
+      "Bangladesh — the world's most satellite-observable delta, with one of the densest gauge networks in the Global South. Even here, across 2014–2025, Flood Pulse caught 2.9× the people the merged satellite-and-curator catalogs logged.",
+      "Brazil — across 2014–2025, the merged traditional catalogs counted 65 million people in flooded areas. Flood Pulse, reading local Portuguese news in every state, found 147 million — more than twice as many, almost all of it in the Amazon and the interior.",
+      "Kenya — older catalogs are anchored in 2010's Tana River basin floods, large polygons that look complete from space. But across 2014–2025, Flood Pulse has caught nearly twice the people in flooded areas — drought-flood whiplash in Turkana, urban flooding in Nairobi, coastal storms in Mombasa.",
     ],
-    camera: DRC,
+    camera: BANGLADESH,
     data: {
       year: 2018,
       mapMode: "exposure",
       hexOpacity: 0.9,
       datasetFilter: "all",
-      countryGapIso3: "COD",
+      countryGapIso3: "BGD",
     },
   },
   {

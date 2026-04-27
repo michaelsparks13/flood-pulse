@@ -32,14 +32,6 @@ export const CONGO_BASIN: CameraKeyframe = {
 
 /** Act 6 three-country flyover. Flat (pitch 0) both for hex alignment and
  *  because the split-screen old-vs-new view reads best straight down. */
-export const DRC: CameraKeyframe = {
-  center: [25, -2],
-  zoom: 4.5,
-  pitch: 0,
-  bearing: 0,
-  duration: 2500,
-};
-
 export const BANGLADESH: CameraKeyframe = {
   center: [90, 23.7],
   zoom: 5.0,
@@ -57,12 +49,21 @@ export const BRAZIL: CameraKeyframe = {
   duration: 2500,
 };
 
+/** Kenya — centered on the country, wide enough to show coast through Turkana. */
+export const KENYA: CameraKeyframe = {
+  center: [38, 0.5],
+  zoom: 5.0,
+  pitch: 0,
+  bearing: 0,
+  duration: 2500,
+};
+
 /** Handoff view — same as neutral, held. */
 export const HANDOFF = GLOBE_NEUTRAL;
 
 /** Three-country sequence consumed by StoryContainer for the three-stories act. */
 export const COUNTRY_SEQUENCE = [
-  { iso3: "COD", camera: DRC },
   { iso3: "BGD", camera: BANGLADESH },
   { iso3: "BRA", camera: BRAZIL },
+  { iso3: "KEN", camera: KENYA },
 ] as const;

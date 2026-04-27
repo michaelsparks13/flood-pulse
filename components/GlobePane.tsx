@@ -101,6 +101,20 @@ export default function GlobePane({
     });
     mapRef.current = map;
     map.on("load", () => {
+      map.addSource("countries", {
+        type: "geojson",
+        data: "/data/ne_countries.geojson",
+      });
+      map.addLayer({
+        id: "country-boundaries",
+        type: "line",
+        source: "countries",
+        paint: {
+          "line-color": "#ffffff",
+          "line-opacity": 0.15,
+          "line-width": 0.8,
+        },
+      });
       setBasemapReady(true);
       onMapReady?.(map);
     });

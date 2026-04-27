@@ -38,10 +38,11 @@ export default function CountryYearCompare({
   // Per-year relative bar width. Normalize against the largest FP peak across
   // the three rows so the bars share a scale.
   const maxFp = Math.max(...peaks.peakYears.map((p) => p.fp));
-  const tradTotal = peaks.tradTotal2000_2018 ?? 0;
+  const tradTotal = peaks.tradTotal;
+  const windowYears = peaks.windowEnd - peaks.windowStart + 1;
 
   const show = visible;
-  const tradUnavailable = peaks.tradTotal2000_2018 == null;
+  const tradUnavailable = tradTotal === 0;
 
   return (
     <div
@@ -98,7 +99,7 @@ export default function CountryYearCompare({
           const fpBar = Math.max(0.03, p.fp / maxFp);
           const tradBar =
             tradTotal > 0 ? Math.max(0.02, Math.min(1, tradTotal / maxFp)) : 0;
-          const yearFraction = tradTotal > 0 ? tradTotal / 19 : 0;
+          const yearFraction = tradTotal > 0 ? tradTotal / windowYears : 0;
           const tradYearBar =
             yearFraction > 0
               ? Math.max(0.02, Math.min(1, yearFraction / maxFp))
@@ -152,8 +153,8 @@ export default function CountryYearCompare({
 
       <div className="px-5 pb-4 pt-2 border-t border-border/60 flex items-center justify-between gap-4 text-[11px]">
         <div className="text-text-tertiary">
-          2000–2018 totals
-          {tradUnavailable ? null : ` · annualized trad = total ÷ 19`}
+          {peaks.windowStart}–{peaks.windowEnd} totals
+          {tradUnavailable ? null : ` · annualized trad = total ÷ ${windowYears}`}
         </div>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1.5">
@@ -165,7 +166,7 @@ export default function CountryYearCompare({
           <div className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-sm bg-[#ef8a62]" />
             <span className="text-text-primary font-mono">
-              {formatPE(peaks.fpTotal2000_2018)}
+              {formatPE(peaks.fpTotal)}
             </span>
           </div>
         </div>

@@ -145,7 +145,7 @@ function PaneBadge({
         <div className="text-[10px] uppercase tracking-[0.18em] text-text-tertiary leading-none">
           {sub}
         </div>
-        <div className="text-[13px] font-semibold text-text-primary mt-0.5 leading-none">
+        <div className="text-[13px] font-semibold text-text-primary mt-1.5 leading-none">
           {label}
         </div>
       </div>

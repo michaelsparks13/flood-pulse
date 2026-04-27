@@ -58,7 +58,7 @@ from config import (
     DFO_GPKG,
     GDACS_MONTHLY_DIR,
     GFD_QC_CSV,
-    H3_RESOLUTION,
+    H3_RESOLUTION_TRAD,
     MAX_YEAR,
     TRAD_HEX_YEARS,
     ensure_dirs,
@@ -160,7 +160,7 @@ def iter_dfo_events() -> Iterable[tuple[set[str], int]]:
 
     for idx, row in enumerate(gdf.itertuples(index=False), start=1):
         year = int(row.year)
-        hexes = geom_to_h3_cells(row.geometry, H3_RESOLUTION)
+        hexes = geom_to_h3_cells(row.geometry, H3_RESOLUTION_TRAD)
         if hexes:
             yield hexes, year
         if idx % 500 == 0:
@@ -226,7 +226,7 @@ def iter_gfd_events() -> Iterable[tuple[set[str], int]]:
             geom = _parse_kml_geom(row.get("geometry", ""))
             if geom is None:
                 continue
-            hexes = geom_to_h3_cells(geom, H3_RESOLUTION)
+            hexes = geom_to_h3_cells(geom, H3_RESOLUTION_TRAD)
             if hexes:
                 rows_geom_ok += 1
                 yield hexes, int(year)
@@ -249,12 +249,16 @@ def _buffer_point_hexes(lon: float, lat: float, radius_km: float) -> set[str]:
         k=5 -> radius ~55 km   (91 cells)
     """
     try:
-        seed = h3.latlng_to_cell(lat, lon, H3_RESOLUTION)
+        seed = h3.latlng_to_cell(lat, lon, H3_RESOLUTION_TRAD)
     except Exception:
         return set()
 
-    # res-5 mean edge length (km) from h3.average_hexagon_edge_length.
-    HEX_EDGE_KM = 9.854
+    # Mean hex edge length at the configured trad resolution.
+    try:
+        HEX_EDGE_KM = h3.average_hexagon_edge_length(H3_RESOLUTION_TRAD, unit="km")
+    except (TypeError, AttributeError):
+        # h3-py v3 fallback / hardcoded values per resolution
+        HEX_EDGE_KM = {5: 9.854, 6: 3.724, 7: 1.406}.get(H3_RESOLUTION_TRAD, 9.854)
     k = max(0, int(round(radius_km / HEX_EDGE_KM)))
     try:
         return set(h3.grid_disk(seed, k))

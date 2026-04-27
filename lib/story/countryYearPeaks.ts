@@ -1,72 +1,73 @@
 /**
  * Per-country peak-year data for the Act 6 old-vs-new comparison.
  *
- * Each country's three peak years are the top 3 FloodPulse population-exposed
- * years in 2000–2018 (the GFD coverage window). Yearly GFD values aren't in
- * the current pipeline output, so we compare FP yearly peaks against the GFD
- * 2000–2018 country total. The resulting contrast is the point: "in 2017
- * alone, Flood Pulse caught X — more than traditional catalogs caught in
- * nineteen years."
+ * Numbers are computed from public/data/{old,new}/hex_years/{year}.json over
+ * a per-country window. We use the **merged** OLD catalog (DFO + GFD + GDACS)
+ * because that's what the side-by-side map actually renders — keeping the
+ * card numbers consistent with what the user is seeing geographically.
  *
- * Numbers derived from public/data/country_timeseries.json and
- * public/data/country_comparison.json, regenerable via scripts/peak-years.js.
+ * All three current countries use the 2014–2025 window: it's recent enough
+ * that Groundsource has full coverage, and Flood Pulse's gap over the merged
+ * traditional catalog holds across the board (1.9–2.7×).
  */
 export interface PeakYear {
   year: number;
-  /** FloodPulse population-exposed for that year. */
   fp: number;
-  /** Flooded hex count for that year (scale indicator). */
   hexes: number;
 }
 
 export interface CountryPeaks {
   iso3: string;
   name: string;
-  /** GFD cumulative PE 2000–2018. Null means no GFD coverage in this country. */
-  tradTotal2000_2018: number | null;
-  /** FloodPulse cumulative PE 2000–2018. */
-  fpTotal2000_2018: number;
-  /** FP-to-GFD ratio over 2000–2018. Null if GFD reported zero coverage. */
-  ratio: number | null;
-  /** Sorted chronologically, 3 entries. */
+  windowStart: number;
+  windowEnd: number;
+  tradTotal: number;
+  fpTotal: number;
+  ratio: number;
   peakYears: PeakYear[];
 }
 
 export const COUNTRY_PEAKS: Record<string, CountryPeaks> = {
-  COD: {
-    iso3: "COD",
-    name: "Democratic Republic of the Congo",
-    tradTotal2000_2018: null,
-    fpTotal2000_2018: 8_607_961,
-    ratio: null,
-    peakYears: [
-      { year: 2014, fp: 1_167_551, hexes: 33 },
-      { year: 2016, fp: 1_111_163, hexes: 19 },
-      { year: 2018, fp: 1_144_618, hexes: 16 },
-    ],
-  },
   BGD: {
     iso3: "BGD",
     name: "Bangladesh",
-    tradTotal2000_2018: 44_333_706,
-    fpTotal2000_2018: 96_643_329,
-    ratio: 2.18,
+    windowStart: 2014,
+    windowEnd: 2025,
+    tradTotal: 68_984_677,
+    fpTotal: 200_802_678,
+    ratio: 2.9,
     peakYears: [
-      { year: 2007, fp: 12_244_242, hexes: 286 },
-      { year: 2016, fp: 13_376_656, hexes: 314 },
-      { year: 2017, fp: 18_518_216, hexes: 386 },
+      { year: 2020, fp: 22_786_186, hexes: 444 },
+      { year: 2024, fp: 25_102_303, hexes: 476 },
+      { year: 2025, fp: 23_882_467, hexes: 462 },
     ],
   },
   BRA: {
     iso3: "BRA",
     name: "Brazil",
-    tradTotal2000_2018: 339_846,
-    fpTotal2000_2018: 96_201_676,
-    ratio: 283.074,
+    windowStart: 2014,
+    windowEnd: 2025,
+    tradTotal: 65_190_227,
+    fpTotal: 147_180_206,
+    ratio: 2.3,
     peakYears: [
-      { year: 2016, fp: 10_647_196, hexes: 2033 },
-      { year: 2017, fp: 10_326_131, hexes: 1990 },
-      { year: 2018, fp: 10_396_920, hexes: 2182 },
+      { year: 2023, fp: 15_155_833, hexes: 3537 },
+      { year: 2024, fp: 15_356_319, hexes: 3699 },
+      { year: 2025, fp: 15_427_186, hexes: 3745 },
+    ],
+  },
+  KEN: {
+    iso3: "KEN",
+    name: "Kenya",
+    windowStart: 2014,
+    windowEnd: 2025,
+    tradTotal: 13_782_538,
+    fpTotal: 27_302_717,
+    ratio: 2.0,
+    peakYears: [
+      { year: 2020, fp: 3_891_991, hexes: 301 },
+      { year: 2023, fp: 4_232_493, hexes: 379 },
+      { year: 2024, fp: 4_247_679, hexes: 383 },
     ],
   },
 };
