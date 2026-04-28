@@ -1,15 +1,15 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { MapboxOverlay } from "@deck.gl/mapbox";
 import { H3HexagonLayer } from "@deck.gl/geo-layers";
 import { DataFilterExtension } from "@deck.gl/extensions";
-import { cellToLatLng } from "h3-js";
-import type { MapMode, HexDatum, HexCompactJSON } from "@/lib/types";
+import type { MapMode, HexDatum } from "@/lib/types";
 import { getExposureRGBA, getFrequencyRGBA, getConfidenceBlendedRGBA } from "@/lib/colors";
 import { useGlobe } from "@/context/GlobeContext";
+import { loadHexDataForYear, prefetchHexYears } from "@/lib/data/hexYearly";
 
 function formatPopulation(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
@@ -100,97 +100,56 @@ export default function Globe({
   const flyInDoneRef = useRef(false);
 
 
-  // Fetch compact hex data once on mount (shared across route transitions)
+  // GFD country list (used to flag which hexes' countries had any GFD events)
+  // is loaded once and reused across years.
+  const gfdSetRef = useRef<Set<string> | null>(null);
+  // Bumps each time fresh year data lands. Used to nudge the layer-rebuild
+  // effect without blanking the map while a fetch is in flight.
+  const [dataVersion, setDataVersion] = useState(0);
+
+  // Per-year data load. Re-runs when `year` changes — each year is fetched
+  // and cached lazily by lib/data/hexYearly.ts. We deliberately do NOT clear
+  // dataReady while a new year is loading: that would blank the map and make
+  // slider scrubbing feel laggier than the network actually is. Instead, the
+  // previous year stays on screen until the new one is parsed and ready.
   useEffect(() => {
-    // If data already loaded (e.g., via earlier route), don't refetch
-    if (hexDataRef.current) {
-      if (!dataReady) setDataReady(true);
-      return;
-    }
-    Promise.all([
-      fetch("/data/hex_compact.json").then((r) => r.json() as Promise<HexCompactJSON>),
-      fetch("/data/gfd_observed_countries.json")
-        .then((r) => (r.ok ? (r.json() as Promise<string[]>) : [] as string[]))
-        .catch(() => [] as string[]),
-    ])
-      .then(async ([json, gfdCountries]) => {
-        const { columns, rows } = json;
-        const gfdSet = new Set(gfdCountries);
-        // Dense country-code → integer, built as we iterate. Lets the deck.gl
-        // layer filter by country on the GPU (uniform flip, no buffer rebuild).
-        const countryIndex: Record<string, number> = {};
-        let nextCc = 0;
-        // Column index map — avoid per-row indexOf.
-        const idx = Object.fromEntries(columns.map((c, i) => [c, i])) as Record<string, number>;
-        // Drop hexes with negligible population on both catalogs — they're
-        // invisible in either palette and just inflate the per-hex work
-        // deck.gl has to do every time a dataset filter changes.
-        const MIN_POP = 100;
-        // Growable — we don't know the final size until we filter. Start at
-        // ~60% of row count (observed FP+trad retention rate).
-        const data: HexDatum[] = [];
-        // Chunk the conversion across frames so we don't freeze the main thread
-        // while 400k+ rows are materialized. yieldAfter ≈ 8ms per tick keeps
-        // scroll + paint responsive.
-        const CHUNK = 25_000;
-        let i = 0;
-        let ccIdxCounter = 0;
-        while (i < rows.length) {
-          const end = Math.min(i + CHUNK, rows.length);
-          for (let k = i; k < end; k++) {
-            const row = rows[k];
-            const p = row[idx.p] as number;
-            const tradP = row[idx.trad_p] as number | null;
-            if ((!p || p < MIN_POP) && (!tradP || tradP < MIN_POP)) continue;
-            const cc = row[idx.cc] as string;
-            let ccIdx = countryIndex[cc];
-            if (ccIdx === undefined) {
-              ccIdx = ccIdxCounter++;
-              countryIndex[cc] = ccIdx;
-            }
-            const hex = {
-              h: row[idx.h] as string,
-              m: row[idx.m] as number,
-              yf: row[idx.yf] as number,
-              p,
-              y0: row[idx.y0] as number,
-              y1: row[idx.y1] as number,
-              cc,
-              ft: row[idx.ft] as number,
-              rp: row[idx.rp] as number,
-              trad_y0: row[idx.trad_y0] as number | null,
-              trad_y1: row[idx.trad_y1] as number | null,
-              trad_yf: row[idx.trad_yf] as number | null,
-              trad_p: tradP,
-              trad_src: row[idx.trad_src] as string | null,
-              ccIdx,
-            } as HexDatum;
-            hex.isGfdObserved = gfdSet.has(cc);
-            const [lat, lng] = cellToLatLng(hex.h);
-            hex.lat = lat;
-            hex.lng = lng;
-            data.push(hex);
-          }
-          i = end;
-          if (i < rows.length) {
-            // Yield to the event loop so scroll, UI, and basemap tiles keep
-            // rendering while we're still enriching hex rows.
-            await new Promise<void>((resolve) => {
-              if (typeof (window as unknown as { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => void }).requestIdleCallback === "function") {
-                (window as unknown as { requestIdleCallback: (cb: () => void, opts?: { timeout: number }) => void }).requestIdleCallback(() => resolve(), { timeout: 50 });
-              } else {
-                setTimeout(resolve, 0);
-              }
-            });
-          }
-        }
-        console.log(`[FloodPulse] Loaded ${data.length}/${rows.length} hexes after pop-filter; GFD-observed countries: ${gfdCountries.length}; unique countries: ${ccIdxCounter}`);
-        hexDataRef.current = data;
-        countryIndexRef.current = countryIndex;
-        setDataReady(true);
+    let cancelled = false;
+
+    const ensureGfdSet = async (): Promise<Set<string>> => {
+      if (gfdSetRef.current) return gfdSetRef.current;
+      const list = await fetch("/data/gfd_observed_countries.json")
+        .then((r) => (r.ok ? (r.json() as Promise<string[]>) : ([] as string[])))
+        .catch(() => [] as string[]);
+      const s = new Set(list);
+      gfdSetRef.current = s;
+      return s;
+    };
+
+    ensureGfdSet()
+      .then((gfdSet) => loadHexDataForYear(year, gfdSet))
+      .then((result) => {
+        if (cancelled) return;
+        hexDataRef.current = result.hexes;
+        countryIndexRef.current = result.countryIndex;
+        setDataVersion((v) => v + 1);
+        if (!dataReady) setDataReady(true);
       })
-      .catch((err) => console.error("[FloodPulse] Data load failed:", err));
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+      .catch((err) =>
+        console.error(`[FloodPulse] year ${year} data load failed:`, err)
+      );
+
+    // Prefetch ±3 years so a fast slider drag has data ready before the user
+    // gets there. Caches dedupe so this is cheap if a year is already loaded.
+    for (const offset of [-3, -2, -1, 1, 2, 3]) {
+      const y = year + offset;
+      prefetchHexYears("old", [y]);
+      prefetchHexYears("new", [y]);
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [year]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Initialize MapLibre map
   useEffect(() => {
@@ -560,7 +519,7 @@ export default function Globe({
       onDataReady?.();
       onRevealStart?.();
     }
-  }, [dataReady, year, mapMode, hexOpacity, basemapReady, highlightHex, splitCompare, confidenceMode, dividerX, datasetFilter, countryFilter]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [dataReady, dataVersion, year, mapMode, hexOpacity, basemapReady, highlightHex, splitCompare, confidenceMode, dividerX, datasetFilter, countryFilter]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Pulse layer animation — runs independently of the main layer effect
   // so 30k hexes don't get rebuilt every frame.

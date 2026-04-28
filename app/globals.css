@@ -144,29 +144,6 @@ body {
   }
 }
 
-/* Atmospheric rim glow — subtle breathing around the globe edge */
-@keyframes atmosphere-breathe {
-  0%,
-  100% {
-    opacity: 0.5;
-  }
-  50% {
-    opacity: 1;
-  }
-}
-
-.atmosphere-glow {
-  background: radial-gradient(
-    ellipse 80% 80% at 50% 48%,
-    transparent 35%,
-    rgba(182, 54, 121, 0.08) 48%,
-    rgba(182, 54, 121, 0.14) 56%,
-    rgba(44, 17, 95, 0.10) 65%,
-    transparent 78%
-  );
-  animation: atmosphere-breathe 6s ease-in-out infinite;
-}
-
 /* Interaction hint animations */
 @keyframes hint-enter {
   from {
@@ -190,9 +167,3 @@ body {
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .atmosphere-glow {
-    animation: none;
-    opacity: 0.5;
-  }
-}

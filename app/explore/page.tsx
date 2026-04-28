@@ -26,7 +26,7 @@ export default function Home() {
   const [showLabels, setShowLabels] = useState(false);
   const [satellite, setSatellite] = useState(false);
   const [hexOpacity, setHexOpacity] = useState(0.9);
-  const [mapMode, setMapMode] = useState<MapMode>("exposure");
+  const mapMode: MapMode = "exposure";
   const [infoExpanded, setInfoExpanded] = useState(false);
 
   // Living Globe state
@@ -172,9 +172,6 @@ export default function Home() {
         onRevealStart={handleRevealStart}
       />
 
-      {/* Atmospheric rim glow */}
-      <div className="atmosphere-glow absolute inset-0 z-1 pointer-events-none" />
-
       {/* Cursor-reactive glow (desktop only) */}
       {cursorPos && (
         <div
@@ -297,63 +294,19 @@ export default function Home() {
               />
             </div>
 
-            {/* Mode toggle + Legend — hidden on mobile */}
+            {/* Legend — hidden on mobile */}
             <div className="hidden sm:flex flex-col items-end shrink-0 pb-1 gap-2">
-              {/* Segmented toggle */}
-              <div className="flex rounded-lg border border-border overflow-hidden text-[10px]">
-                <button
-                  onClick={() => setMapMode("exposure")}
-                  className={`px-2.5 py-1 transition-colors cursor-pointer ${
-                    mapMode === "exposure"
-                      ? "bg-white/10 text-text-primary"
-                      : "text-text-tertiary hover:text-text-secondary"
-                  }`}
-                >
-                  Exposure
-                </button>
-                <button
-                  onClick={() => setMapMode("frequency")}
-                  className={`px-2.5 py-1 transition-colors cursor-pointer border-l border-border ${
-                    mapMode === "frequency"
-                      ? "bg-white/10 text-text-primary"
-                      : "text-text-tertiary hover:text-text-secondary"
-                  }`}
-                >
-                  Frequency
-                </button>
+              <div
+                className="w-28 h-2 rounded-full"
+                style={{
+                  background:
+                    "linear-gradient(90deg, #0d0829, #2c115f, #711f81, #b63679, #e85a5a, #f8945e, #fdd162, #fcffa4)",
+                }}
+              />
+              <div className="flex justify-between w-28 text-[9px] text-text-tertiary">
+                <span>Low exposure</span>
+                <span>High</span>
               </div>
-
-              {/* Dynamic legend */}
-              {mapMode === "exposure" ? (
-                <>
-                  <div
-                    className="w-28 h-2 rounded-full"
-                    style={{
-                      background:
-                        "linear-gradient(90deg, #0d0829, #2c115f, #711f81, #b63679, #e85a5a, #f8945e, #fdd162, #fcffa4)",
-                    }}
-                  />
-                  <div className="flex justify-between w-28 text-[9px] text-text-tertiary">
-                    <span>Low</span>
-                    <span>High</span>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div
-                    className="w-28 h-2 rounded-full"
-                    style={{
-                      background:
-                        "linear-gradient(90deg, #2166ac, #67a9cf, #f0f0f0, #ef8a62, #b2182b)",
-                    }}
-                  />
-                  <div className="flex justify-between w-28 text-[9px] text-text-tertiary">
-                    <span>Less</span>
-                    <span className="text-[8px]">Stable</span>
-                    <span>More</span>
-                  </div>
-                </>
-              )}
             </div>
           </div>
         </div>
