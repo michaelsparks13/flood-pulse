@@ -144,6 +144,13 @@ body {
   }
 }
 
+/* MapLibre hex-hover popup. Without this, the deck.gl overlay's canvas
+   paints on top of the popup HTML on /explore — the popup card appears
+   half-occluded by hexes underneath. Bumping z-index lifts it above. */
+.maplibregl-popup {
+  z-index: 5;
+}
+
 /* Interaction hint animations */
 @keyframes hint-enter {
   from {
