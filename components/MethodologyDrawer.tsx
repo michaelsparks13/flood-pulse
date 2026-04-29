@@ -141,9 +141,8 @@ export default function MethodologyDrawer({ open, onOpenChange }: MethodologyDra
                 <p className="mt-2">
                   <strong className="text-text-primary">Population exposed</strong>{" "}
                   is the number of people living in areas that experienced
-                  flooding in a given year. Each person is counted once per year
-                  regardless of how many months their area flooded. This follows
-                  the methodology established by{" "}
+                  flooding in a given year. We borrow the accounting convention
+                  from{" "}
                   <a
                     href="https://www.nature.com/articles/s41586-021-03695-w"
                     target="_blank"
@@ -152,16 +151,13 @@ export default function MethodologyDrawer({ open, onOpenChange }: MethodologyDra
                   >
                     Tellman et&nbsp;al. (2021)
                   </a>{" "}
-                  and the{" "}
-                  <a
-                    href="https://documents.worldbank.org/en/publication/documents-reports/documentdetail/669141603288540994/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-accent-bright underline underline-offset-2"
-                  >
-                    World Bank
-                  </a>
-                  .
+                  &mdash; each person counted once per year regardless of flood
+                  duration &mdash; but our underlying inundation product is
+                  fundamentally different: news-derived administrative polygons
+                  scaled by a 10% inundation ratio, rather than
+                  satellite-observed water pixels. PE estimates from the two
+                  methods are therefore not directly comparable; the Compare
+                  page documents the typical 5&ndash;10&times; ratio.
                 </p>
                 <MetricExplainer />
               </section>
