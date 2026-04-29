@@ -178,8 +178,10 @@ export default function ComparePage() {
               Log scale
             </button>
             <p className="text-[10px] text-text-tertiary/60">
-              FloodPulse captures 2.6M events vs. GFD&apos;s 913 satellite-observed large floods.
-              Shaded region = low-confidence years (&lt;5K Groundsource records).
+              FloodPulse captures 2.6M news-derived records (corresponding to
+              a smaller, undocumented number of unique events) versus GFD&apos;s
+              913 satellite-mapped large flood episodes. Shaded region =
+              low-confidence years (&lt;5K Groundsource records).
             </p>
           </div>
 

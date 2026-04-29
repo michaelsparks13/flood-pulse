@@ -85,9 +85,12 @@ export default function MethodologyDrawer({ open, onOpenChange }: MethodologyDra
                   >
                     Google Groundsource
                   </a>
-                  , a dataset of 2.6 million flood events extracted from global
-                  news articles using Gemini AI. Each record contains a geographic
-                  polygon, start date, end date, and area estimate.
+                  , a dataset of 2.6 million news-derived flood records
+                  extracted from global news articles using Gemini AI. A single
+                  real-world flood typically generates many records: Hurricane
+                  Harvey alone produced over 1,000. The 2.6M figure is the count
+                  of records, not unique flood events. Each record contains a
+                  geographic polygon, start date, end date, and area estimate.
                 </p>
               </section>
 
@@ -199,14 +202,39 @@ export default function MethodologyDrawer({ open, onOpenChange }: MethodologyDra
                   </li>
                   <li>
                     <span className="text-text-secondary">Inundation ratio (10%):</span>{" "}
-                    Since the event polygon is an administrative boundary, not a
-                    flood extent, we estimate that roughly 10% of the reported
-                    area was actually inundated. This ratio is consistent with
-                    flood inundation literature and produces annual exposure
-                    estimates (400&ndash;600M in recent years) that align with
-                    World Bank and UNDRR benchmarks.
+                    Since the event polygon is an administrative boundary, not
+                    a flood extent, we apply a fixed 10% correction &mdash;
+                    meaning we assume roughly 10% of the reported area was
+                    actually under water. This is a calibration choice, not a
+                    measured ratio. The resulting annual estimates
+                    (400&ndash;600M in recent years) sit between two reference
+                    points: ~5&ndash;10&times; higher than the GFD
+                    satellite-observed PE for the overlapping 2000&ndash;2018
+                    period (see Calibration chart on the Compare page), and
+                    roughly an order of magnitude higher than UNDRR GAR
+                    2025&rsquo;s 35M/year annual exposure figure. They are
+                    closer in magnitude to Rentschler et al. (2022)&rsquo;s
+                    1.81B &ldquo;1-in-100-year&rdquo; static at-risk
+                    population, which counts people living in flood-prone zones
+                    rather than people flooded in a given year. Treat
+                    FloodPulse PE as an upper bound on annual exposure, biased
+                    upward by news-coverage of all flood severities and by the
+                    polygon-size heterogeneity of news-derived locations.
                   </li>
                 </ul>
+                <p className="mt-3">
+                  <span className="text-text-secondary">A note on polygon scale.</span>{" "}
+                  Groundsource records resolve to administrative polygons that
+                  range from neighborhood-scale (a few km²) to state-scale
+                  (hundreds of thousands of km²). The 10% ratio is applied
+                  uniformly. This means small-polygon records (e.g.,
+                  &ldquo;flooding in downtown Houston&rdquo;) likely
+                  underestimate actual inundation fraction, while large-polygon
+                  records (e.g., &ldquo;flooding in Bihar&rdquo;) likely
+                  overestimate it. We apply a constant ratio because we lack
+                  the per-polygon ground truth to do better, but readers should
+                  recognize this as a known source of error.
+                </p>
               </section>
 
               <section>
