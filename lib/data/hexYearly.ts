@@ -156,9 +156,11 @@ export interface CombinedHexYearResult {
   countryIndex: Record<string, number>;
 }
 
-/** OLD's res-6 hexes flood many low-PE rural cells; mirror the home-page
- *  threshold so /explore renders the same "honest" view of OLD coverage. */
-const OLD_PE_THRESHOLD = 2000;
+/** OLD's res-6 hexes include many low-PE rural cells from DFO's giant
+ *  polygons. The threshold is a compromise: high enough that OLD doesn't
+ *  swamp the map with low-population blobs, low enough that OLD coverage
+ *  is still clearly visible compared to NEW. ~1.7× NEW's hex count. */
+const OLD_PE_THRESHOLD = 500;
 /** NEW hexes are only kept if their PE clears this minimum — matches the
  *  pipeline export's MIN_EXPOSED. */
 const NEW_PE_THRESHOLD = 50;

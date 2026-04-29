@@ -168,12 +168,10 @@ export default function GlobePane({
     if (!hexData) return;
 
     // OLD has many low-PE rural cells from DFO's huge polygons that, after
-    // res-6 polyfill, populate sparse rainforest / desert hexes. They aggregate
-    // visually into "blocky" polygon-shaped blobs at world zoom and obscure
-    // the population-exposure story. Drop them so OLD reads like NEW: only
-    // hexes with meaningful exposure remain. NEW's median PE is ~1880, so a
-    // 2000 threshold lines OLD up to a similar density.
-    const OLD_PE_THRESHOLD = 2000;
+    // res-6 polyfill, populate sparse rainforest / desert hexes. We drop the
+    // very-low-PE tail to keep the visualization honest while still leaving
+    // OLD clearly visible. ~1.7× NEW's hex count at this threshold.
+    const OLD_PE_THRESHOLD = 500;
     let data = countryFilter
       ? hexData.filter((d) => d.cc === countryFilter)
       : hexData;

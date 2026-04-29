@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { MapboxOverlay } from "@deck.gl/mapbox";
@@ -98,22 +98,25 @@ export default function Globe({
   } = useGlobe();
   const popupRef = useRef<maplibregl.Popup | null>(null);
   const flyInDoneRef = useRef(false);
+  // Once-per-mount guards: parent callbacks are idempotent at the React-state
+  // level (setX(true) when X===true is a no-op), but calling them every layer
+  // rebuild — which fires 60Hz during the opacity reveal animation — overflows
+  // React's update-depth guard. Fire each only on the first transition.
+  const dataReadyFiredRef = useRef(false);
+  const revealStartFiredRef = useRef(false);
 
 
-  // GFD country list (used to flag which hexes' countries had any GFD events)
-  // is loaded once and reused across years.
+  // GFD country list is loaded once and reused across years.
   const gfdSetRef = useRef<Set<string> | null>(null);
-  // Bumps each time fresh year data lands. Used to nudge the layer-rebuild
-  // effect without blanking the map while a fetch is in flight.
-  const [dataVersion, setDataVersion] = useState(0);
 
   // Per-year data load. Re-runs when `year` changes — each year is fetched
-  // and cached lazily by lib/data/hexYearly.ts. We deliberately do NOT clear
-  // dataReady while a new year is loading: that would blank the map and make
-  // slider scrubbing feel laggier than the network actually is. Instead, the
-  // previous year stays on screen until the new one is parsed and ready.
+  // and cached lazily by lib/data/hexYearly.ts. We toggle dataReady false→true
+  // around each load so the layer-rebuild effect (which keys on dataReady)
+  // re-runs cleanly with the new year's hexes. If a year is already cached,
+  // the load resolves synchronously enough that the brief blank is unnoticeable.
   useEffect(() => {
     let cancelled = false;
+    setDataReady(false);
 
     const ensureGfdSet = async (): Promise<Set<string>> => {
       if (gfdSetRef.current) return gfdSetRef.current;
@@ -131,17 +134,18 @@ export default function Globe({
         if (cancelled) return;
         hexDataRef.current = result.hexes;
         countryIndexRef.current = result.countryIndex;
-        setDataVersion((v) => v + 1);
-        if (!dataReady) setDataReady(true);
+        setDataReady(true);
       })
       .catch((err) =>
         console.error(`[FloodPulse] year ${year} data load failed:`, err)
       );
 
-    // Prefetch ±3 years so a fast slider drag has data ready before the user
-    // gets there. Caches dedupe so this is cheap if a year is already loaded.
-    for (const offset of [-3, -2, -1, 1, 2, 3]) {
+    // Prefetch ±2 years (clamped to data range) for snappy slider scrubbing.
+    const MIN_YEAR = 2000;
+    const MAX_YEAR = 2025;
+    for (const offset of [-2, -1, 1, 2]) {
       const y = year + offset;
+      if (y < MIN_YEAR || y > MAX_YEAR) continue;
       prefetchHexYears("old", [y]);
       prefetchHexYears("new", [y]);
     }
@@ -153,6 +157,15 @@ export default function Globe({
 
   // Initialize MapLibre map
   useEffect(() => {
+    // Re-enable pointer events on the GlobeContext host. The host defaults to
+    // `pointer-events: none` (so the empty host on / doesn't capture clicks
+    // intended for DualGlobe); pointer-events inherits to MapLibre's canvas-
+    // container, which would block pan/zoom on /explore. Flip it back to
+    // "auto" now that an interactive map is mounting on this route.
+    if (containerRef.current) {
+      containerRef.current.style.pointerEvents = "auto";
+    }
+
     // If the map already exists (user navigated back from another route),
     // the persistent GlobeContext has retained it. Fire the readiness
     // callbacks and return early — do NOT reinitialize.
@@ -295,6 +308,11 @@ export default function Globe({
       // NOTE: Do not destroy the map — it lives in GlobeContext and persists
       // across route transitions. Only clean up route-scoped listeners/popups.
       popupRef.current?.remove();
+      // Restore the host's `pointer-events: none` so the empty host on /
+      // doesn't capture clicks intended for DualGlobe.
+      if (containerRef.current) {
+        containerRef.current.style.pointerEvents = "none";
+      }
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -509,17 +527,27 @@ export default function Globe({
       map.addControl(overlay as unknown as maplibregl.IControl);
       overlayRef.current = overlay;
       console.log("[FloodPulse] deck.gl overlay added (overlaid)");
-      onDataReady?.();
+      if (!dataReadyFiredRef.current) {
+        dataReadyFiredRef.current = true;
+        onDataReady?.();
+      }
       triggerReveal();
     } else {
       overlayRef.current.setProps({ layers });
-      // Overlay already existed (navigated back to this route). Fire both
-      // readiness callbacks — the new page has no way to know the globe
-      // was already revealed on a prior mount.
-      onDataReady?.();
-      onRevealStart?.();
+      // Layer rebuilds happen on every year/opacity/mode change. Fire the
+      // readiness callbacks ONCE per mount — calling them every rebuild
+      // (e.g. 60Hz during the opacity-reveal rAF) overflows React's
+      // update-depth guard even though each setState is a no-op.
+      if (!dataReadyFiredRef.current) {
+        dataReadyFiredRef.current = true;
+        onDataReady?.();
+      }
+      if (!revealStartFiredRef.current) {
+        revealStartFiredRef.current = true;
+        onRevealStart?.();
+      }
     }
-  }, [dataReady, dataVersion, year, mapMode, hexOpacity, basemapReady, highlightHex, splitCompare, confidenceMode, dividerX, datasetFilter, countryFilter]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [dataReady, year, mapMode, hexOpacity, basemapReady, highlightHex, splitCompare, confidenceMode, dividerX, datasetFilter, countryFilter]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Pulse layer animation — runs independently of the main layer effect
   // so 30k hexes don't get rebuilt every frame.

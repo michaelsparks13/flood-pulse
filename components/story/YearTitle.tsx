@@ -15,7 +15,7 @@ export default function YearTitle({ year }: YearTitleProps) {
       aria-live="polite"
       style={{
         position: "fixed",
-        top: 12,
+        bottom: 16,
         left: "50%",
         transform: "translateX(-50%)",
         zIndex: 21,
