@@ -1,14 +1,18 @@
 /**
- * Per-country peak-year data for the Act 6 old-vs-new comparison.
+ * Per-country peak-year data for the Act 5 old-vs-new comparison.
  *
  * Numbers are computed from public/data/{old,new}/hex_years/{year}.json over
  * a per-country window. We use the **merged** OLD catalog (DFO + GFD + GDACS)
- * because that's what the side-by-side map actually renders — keeping the
- * card numbers consistent with what the user is seeing geographically.
+ * AND apply the same PE >= 500 runtime threshold that GlobePane.tsx uses on
+ * OLD hexes — so the card totals match what the user actually sees on the
+ * side-by-side map (rather than reflecting hexes the map filters out).
+ *
+ * NEW hexes pass through unchanged at the pipeline's 50 PE minimum, since
+ * GlobePane doesn't apply an additional NEW threshold.
  *
  * All three current countries use the 2014–2025 window: it's recent enough
- * that Groundsource has full coverage, and Flood Pulse's gap over the merged
- * traditional catalog holds across the board (1.9–2.7×).
+ * that Groundsource has full coverage, and the gap over the merged
+ * traditional catalog holds across the board (2.2–2.9×).
  */
 export interface PeakYear {
   year: number;
@@ -33,7 +37,7 @@ export const COUNTRY_PEAKS: Record<string, CountryPeaks> = {
     name: "Bangladesh",
     windowStart: 2014,
     windowEnd: 2025,
-    tradTotal: 68_984_677,
+    tradTotal: 68_874_986,
     fpTotal: 200_802_678,
     ratio: 2.9,
     peakYears: [
@@ -47,9 +51,9 @@ export const COUNTRY_PEAKS: Record<string, CountryPeaks> = {
     name: "Brazil",
     windowStart: 2014,
     windowEnd: 2025,
-    tradTotal: 65_190_227,
+    tradTotal: 57_561_843,
     fpTotal: 147_180_206,
-    ratio: 2.3,
+    ratio: 2.6,
     peakYears: [
       { year: 2023, fp: 15_155_833, hexes: 3537 },
       { year: 2024, fp: 15_356_319, hexes: 3699 },
@@ -61,9 +65,9 @@ export const COUNTRY_PEAKS: Record<string, CountryPeaks> = {
     name: "Kenya",
     windowStart: 2014,
     windowEnd: 2025,
-    tradTotal: 13_782_538,
+    tradTotal: 12_561_765,
     fpTotal: 27_302_717,
-    ratio: 2.0,
+    ratio: 2.2,
     peakYears: [
       { year: 2020, fp: 3_891_991, hexes: 301 },
       { year: 2023, fp: 4_232_493, hexes: 379 },

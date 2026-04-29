@@ -45,7 +45,7 @@ export const ACTS: ActDefinition[] = [
     id: "ratio",
     ariaTitle: "Act 3: The gap, year by year",
     copy: [
-      "By 2018, the merged traditional catalogs caught 215 million people in flooded areas worldwide. Groundsource caught 387 million in the same year.",
+      "By 2018, the merged traditional catalogs caught 199 million people in flooded areas worldwide. Groundsource caught 387 million in the same year.",
       "The gap is widest where it matters most: countries with sparse satellite coverage, thin government reporting, news the rest of the world never sees.",
       "The older methods aren't getting worse. The world is just bigger than what they can see.",
     ],
@@ -81,7 +81,7 @@ export const ACTS: ActDefinition[] = [
     ariaTitle: "Act 5: Three stories",
     copy: [
       "Bangladesh — the world's most satellite-observable delta, with dense gauge networks. Even here, Groundsource caught 2.9× more people in flooded areas than the merged catalogs logged across 2014–2025.",
-      "Brazil — across 2014–2025, the merged catalogs counted 65 million people in flooded areas. Groundsource, reading local Portuguese news, found 147 million — more than twice as many.",
+      "Brazil — across 2014–2025, the merged catalogs counted 58 million people in flooded areas. Groundsource, reading local Portuguese news, found 147 million — more than 2.5 times as many.",
       "Kenya — older catalogs anchor on 2010's Tana basin floods. Across 2014–2025, Groundsource caught nearly twice the people in flooded areas — Turkana drought-flood whiplash, urban Nairobi, coastal Mombasa.",
     ],
     camera: BANGLADESH,
