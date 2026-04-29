@@ -1,5 +1,5 @@
 {
-  "generated": "2026-04-22",
+  "generated": "2026-04-29",
   "floodpulse_data_through": "2025-12",
   "annual_pe": {
     "years": [
@@ -110,9 +110,9 @@
       34351355,
       28396707,
       57294062,
-      null,
-      null,
-      null
+      38453367,
+      49193168,
+      22161070
     ]
   },
   "annual_events": {
@@ -366,9 +366,9 @@
       1663978081,
       1692374788,
       1749668850,
-      null,
-      null,
-      null
+      1788122217,
+      1837315385,
+      1859476455
     ]
   },
   "calibration_gfd": {
@@ -442,7 +442,10 @@
       2019,
       2020,
       2021,
-      2022
+      2022,
+      2023,
+      2024,
+      2025
     ],
     "pe_ratio": [
       0.075,
@@ -467,9 +470,12 @@
       11.679,
       12.953,
       15.421,
-      7.831
+      7.831,
+      12.881,
+      11.938,
+      25.145
     ],
-    "mean_ratio": 4.69,
+    "mean_ratio": 6.07,
     "notes": "Ratio = FloodPulse PE / EM-DAT affected. EM-DAT measures 'total affected' (broader definition) for large disasters only. FloodPulse measures population in reported flood areas with 10% inundation ratio."
   },
   "benchmarks": [

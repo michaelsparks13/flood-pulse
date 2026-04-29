@@ -79,28 +79,37 @@ GFD_TELLMAN: dict = {
 
 # ---------------------------------------------------------------------------
 # EM-DAT — CRED/UCLouvain International Disaster Database
-# Annual flood-affected population from Hu et al. (2024) Sci Rep 14:11705
-# "Global, regional and national trends and impacts of natural floods,
-#  1990-2022" — Table 1.
+# Annual flood-affected population. Two-stage source:
+#   2000-2022: Hu et al. (2024) Sci Rep 14:11705 Table 1 ("Global, regional
+#     and national trends and impacts of natural floods, 1990-2022").
+#   2023-2025: pulled directly from the EM-DAT public table on 2026-04-29
+#     (custom request id bb4ab20c-423d-42e0-bf72-28c9fd45f33a, archived at
+#     pipeline/data/raw/reference/emdat_floods_2023_2025.xlsx). Aggregated
+#     by Start Year across all events with Disaster Type = Flood.
 # "Affected" includes killed, injured, homeless, and otherwise affected.
 # Reports only disasters meeting EM-DAT thresholds (10+ deaths, 100+
 # affected, declaration of emergency, or call for international assistance).
 # ---------------------------------------------------------------------------
 
 EMDAT: dict = {
-    "source": "EM-DAT via Hu et al. (2024) Sci Rep 14:11705",
+    "source": (
+        "EM-DAT (https://www.emdat.be) — 2000-2022 via Hu et al. (2024) "
+        "Sci Rep 14:11705; 2023-2025 pulled directly on 2026-04-29."
+    ),
     "doi": "10.1038/s41598-024-62425-2",
     "method": (
         "Curated disaster reports from UN agencies, governments, NGOs, "
         "insurance companies. Threshold: 10+ deaths, 100+ affected, "
         "state of emergency, or international assistance call."
     ),
-    "coverage": [2000, 2022],
+    "coverage": [2000, 2025],
     "metric": "total_affected",
     "notes": (
         "Measures 'total affected' (killed + injured + homeless + affected), "
         "not population in inundated area. Undercounts small/local events. "
-        "4,713 flood events total across 168 countries, 1990-2022."
+        "Hu et al. covered 1990-2022 (4,713 events / 168 countries); we "
+        "extended through 2025 with a direct EM-DAT pull (424 flood events "
+        "2023-2025, archived in pipeline/data/raw/reference/)."
     ),
     "annual_affected": {
         2000: 68_544_926,
@@ -126,6 +135,9 @@ EMDAT: dict = {
         2020: 34_351_355,
         2021: 28_396_707,
         2022: 57_294_062,
+        2023: 38_453_367,
+        2024: 49_193_168,
+        2025: 22_161_070,  # year-to-date as of 2026-04-29 EM-DAT pull
     },
     "annual_deaths": {
         2000: 3620, 2001: 4055, 2002: 3843, 2003: 3510, 2004: 6265,
@@ -133,6 +145,7 @@ EMDAT: dict = {
         2010: 7756, 2011: 5563, 2012: 3336, 2013: 9809, 2014: 3536,
         2015: 3479, 2016: 4397, 2017: 3337, 2018: 2811, 2019: 4746,
         2020: 5115, 2021: 4166, 2022: 7962,
+        2023: 7442, 2024: 6008, 2025: 5196,
     },
 }
 

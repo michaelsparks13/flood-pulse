@@ -341,16 +341,15 @@ export default function MethodologyDrawer({ open, onOpenChange }: MethodologyDra
                   <strong className="text-text-secondary">Why the gap?</strong>{" "}
                   GFD captures only large, satellite-visible floods (913
                   events) and the published satellite re-analysis ends in
-                  2018. EM-DAT requires severity thresholds (10+ deaths) and
-                  the values we use here come from Hu et&nbsp;al. (2024), who
-                  published through 2022. Beyond those endpoints the lines
-                  flatten because the source datasets stop, not because
-                  flooding stopped &mdash; the shaded zones on the chart flag
-                  the no-data regions. FloodPulse captures 2.6M news-derived
-                  records, including small and localized floods invisible to
-                  satellites. The shaded early years (2000&ndash;2006) also
-                  have sparse Groundsource coverage and are unreliable for
-                  comparison.
+                  2018 &mdash; the shaded zone on the chart flags the no-data
+                  region. EM-DAT requires severity thresholds (10+ deaths,
+                  100+ affected, or declaration of emergency); we use Hu
+                  et&nbsp;al. (2024) for 2000&ndash;2022 and a direct EM-DAT
+                  pull for 2023&ndash;2025 (2025 is year-to-date).
+                  FloodPulse captures 2.6M news-derived records, including
+                  small and localized floods invisible to satellites. The
+                  shaded early years (2000&ndash;2006) also have sparse
+                  Groundsource coverage and are unreliable for comparison.
                 </p>
                 <div className="mt-2">
                   <Link

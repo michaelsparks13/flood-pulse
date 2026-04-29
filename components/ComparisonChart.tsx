@@ -126,24 +126,6 @@ export default function ComparisonChart({
                     }
               }
             />
-            <ReferenceArea
-              x1={2023}
-              x2={points[points.length - 1]?.year}
-              fill="#a78bfa"
-              fillOpacity={0.06}
-              stroke="none"
-              label={
-                compact
-                  ? undefined
-                  : {
-                      value: "EM-DAT: no data after 2022",
-                      position: "insideBottom",
-                      fill: "#a78bfa",
-                      fontSize: 9,
-                      opacity: 0.75,
-                    }
-              }
-            />
 
             <XAxis
               dataKey="year"

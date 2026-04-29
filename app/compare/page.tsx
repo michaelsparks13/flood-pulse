@@ -232,21 +232,6 @@ export default function ComparePage() {
                     opacity: 0.75,
                   }}
                 />
-                {/* EM-DAT coverage ends at 2022 (Hu et al. 2024 source). */}
-                <ReferenceArea
-                  x1={2023}
-                  x2={pePoints[pePoints.length - 1]?.year}
-                  fill="#a78bfa"
-                  fillOpacity={0.06}
-                  stroke="none"
-                  label={{
-                    value: "EM-DAT: no data after 2022",
-                    position: "insideBottom",
-                    fill: "#a78bfa",
-                    fontSize: 10,
-                    opacity: 0.75,
-                  }}
-                />
                 <XAxis
                   dataKey="year"
                   tick={{ fontSize: 10, fill: "#64748b" }}
@@ -416,10 +401,10 @@ export default function ComparePage() {
         <Section title="Cumulative Population Exposed">
           <p className="text-[10px] text-text-tertiary/60 mb-3">
             Running total of annual PE. GFD covers only 2000&ndash;2018 (the
-            satellite re-analysis ended there); EM-DAT covers 2000&ndash;2022
-            (Hu et&nbsp;al. 2024 reference). Past those years the GFD and
-            EM-DAT lines plateau because the datasets stop, not because flooding
-            stopped &mdash; the shaded zones flag the no-data regions.
+            satellite re-analysis ended there) &mdash; the shaded zone flags
+            the no-data region after 2018. EM-DAT now extends through 2025
+            (2023&ndash;2025 pulled directly from emdat.be on 2026-04-29; 2025
+            is year-to-date).
           </p>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
@@ -456,20 +441,6 @@ export default function ComparePage() {
                     value: "GFD: no data after 2018",
                     position: "insideTop",
                     fill: "#22d3ee",
-                    fontSize: 10,
-                    opacity: 0.75,
-                  }}
-                />
-                <ReferenceArea
-                  x1={2023}
-                  x2={cumulPoints[cumulPoints.length - 1]?.year}
-                  fill="#a78bfa"
-                  fillOpacity={0.06}
-                  stroke="none"
-                  label={{
-                    value: "EM-DAT: no data after 2022",
-                    position: "insideBottom",
-                    fill: "#a78bfa",
                     fontSize: 10,
                     opacity: 0.75,
                   }}
