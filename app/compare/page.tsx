@@ -215,6 +215,38 @@ export default function ComparePage() {
                     }}
                   />
                 )}
+                {/* Ghost-shade the GFD no-data zone (post-2018) so readers
+                    don't read the missing line as "satellites detected
+                    nothing." */}
+                <ReferenceArea
+                  x1={2019}
+                  x2={pePoints[pePoints.length - 1]?.year}
+                  fill="#22d3ee"
+                  fillOpacity={0.05}
+                  stroke="none"
+                  label={{
+                    value: "GFD: no data after 2018",
+                    position: "insideTop",
+                    fill: "#22d3ee",
+                    fontSize: 10,
+                    opacity: 0.75,
+                  }}
+                />
+                {/* EM-DAT coverage ends at 2022 (Hu et al. 2024 source). */}
+                <ReferenceArea
+                  x1={2023}
+                  x2={pePoints[pePoints.length - 1]?.year}
+                  fill="#a78bfa"
+                  fillOpacity={0.06}
+                  stroke="none"
+                  label={{
+                    value: "EM-DAT: no data after 2022",
+                    position: "insideBottom",
+                    fill: "#a78bfa",
+                    fontSize: 10,
+                    opacity: 0.75,
+                  }}
+                />
                 <XAxis
                   dataKey="year"
                   tick={{ fontSize: 10, fill: "#64748b" }}
@@ -383,8 +415,11 @@ export default function ComparePage() {
         {/* 3. Cumulative PE */}
         <Section title="Cumulative Population Exposed">
           <p className="text-[10px] text-text-tertiary/60 mb-3">
-            Running total of annual PE. GFD covers only 2000-2018 (913 large
-            events). EM-DAT covers 2000-2022.
+            Running total of annual PE. GFD covers only 2000&ndash;2018 (the
+            satellite re-analysis ended there); EM-DAT covers 2000&ndash;2022
+            (Hu et&nbsp;al. 2024 reference). Past those years the GFD and
+            EM-DAT lines plateau because the datasets stop, not because flooding
+            stopped &mdash; the shaded zones flag the no-data regions.
           </p>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
@@ -408,6 +443,37 @@ export default function ComparePage() {
                     />
                   </linearGradient>
                 </defs>
+                {/* Same no-data ghost shading as the Annual PE chart so the
+                    plateau in the GFD and EM-DAT cumulative lines reads as
+                    "dataset stops" rather than "exposure stops". */}
+                <ReferenceArea
+                  x1={2019}
+                  x2={cumulPoints[cumulPoints.length - 1]?.year}
+                  fill="#22d3ee"
+                  fillOpacity={0.05}
+                  stroke="none"
+                  label={{
+                    value: "GFD: no data after 2018",
+                    position: "insideTop",
+                    fill: "#22d3ee",
+                    fontSize: 10,
+                    opacity: 0.75,
+                  }}
+                />
+                <ReferenceArea
+                  x1={2023}
+                  x2={cumulPoints[cumulPoints.length - 1]?.year}
+                  fill="#a78bfa"
+                  fillOpacity={0.06}
+                  stroke="none"
+                  label={{
+                    value: "EM-DAT: no data after 2022",
+                    position: "insideBottom",
+                    fill: "#a78bfa",
+                    fontSize: 10,
+                    opacity: 0.75,
+                  }}
+                />
                 <XAxis
                   dataKey="year"
                   tick={{ fontSize: 10, fill: "#64748b" }}

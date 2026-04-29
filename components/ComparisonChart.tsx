@@ -106,6 +106,44 @@ export default function ComparisonChart({
                 stroke="none"
               />
             )}
+            {/* Ghost-shade the GFD / EM-DAT no-data regions so the line drops
+                read as "dataset stops" not "exposure stops". */}
+            <ReferenceArea
+              x1={2019}
+              x2={points[points.length - 1]?.year}
+              fill="#22d3ee"
+              fillOpacity={0.05}
+              stroke="none"
+              label={
+                compact
+                  ? undefined
+                  : {
+                      value: "GFD: no data after 2018",
+                      position: "insideTop",
+                      fill: "#22d3ee",
+                      fontSize: 9,
+                      opacity: 0.75,
+                    }
+              }
+            />
+            <ReferenceArea
+              x1={2023}
+              x2={points[points.length - 1]?.year}
+              fill="#a78bfa"
+              fillOpacity={0.06}
+              stroke="none"
+              label={
+                compact
+                  ? undefined
+                  : {
+                      value: "EM-DAT: no data after 2022",
+                      position: "insideBottom",
+                      fill: "#a78bfa",
+                      fontSize: 9,
+                      opacity: 0.75,
+                    }
+              }
+            />
 
             <XAxis
               dataKey="year"
