@@ -42,6 +42,7 @@ export default function CountryGapCard({ iso3, entry, visible }: CountryGapCardP
   const tradVal = peaks ? peaks.tradTotal : entry?.gfd_pe_2000_2018 ?? null;
   const fpVal = peaks ? peaks.fpTotal : entry?.floodpulse_pe_2000_2018 ?? null;
   const ratio = peaks ? peaks.ratio : entry?.fp_gfd_ratio ?? null;
+  const emdatRecent = peaks?.emdatRecent ?? null;
   const windowLabel = peaks
     ? `${peaks.windowStart}–${peaks.windowEnd}`
     : "2000–2018";
@@ -126,6 +127,16 @@ export default function CountryGapCard({ iso3, entry, visible }: CountryGapCardP
             {tradVal === null && (
               <div className="pt-1.5 border-t border-border/50 text-text-tertiary text-[10px]">
                 Zero in traditional catalogs, {windowLabel}.
+              </div>
+            )}
+            {emdatRecent != null && emdatRecent > 0 && (
+              <div className="flex items-center justify-between pt-1.5 mt-1 border-t border-border/50 text-[10px]">
+                <span className="text-text-tertiary">
+                  EM-DAT&nbsp;<span className="font-mono">&lsquo;23&ndash;&lsquo;25</span>
+                </span>
+                <span className="font-mono text-text-secondary">
+                  {formatPE(emdatRecent)} affected
+                </span>
               </div>
             )}
           </div>

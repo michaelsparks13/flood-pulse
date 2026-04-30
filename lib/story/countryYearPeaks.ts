@@ -29,6 +29,13 @@ export interface CountryPeaks {
   fpTotal: number;
   ratio: number;
   peakYears: PeakYear[];
+  /** EM-DAT 'total affected' (deaths + injured + homeless + affected) summed
+   *  across all flood disasters in this country, 2023–2025. Pulled directly
+   *  from emdat.be on 2026-04-29. Surfaced on the card as a separate row
+   *  because EM-DAT counts a different quantity (impacts) on a different
+   *  scope (events meeting severity thresholds) than the hex-derived
+   *  "people in inundated area" we use for tradTotal. */
+  emdatRecent?: number;
 }
 
 export const COUNTRY_PEAKS: Record<string, CountryPeaks> = {
@@ -45,6 +52,7 @@ export const COUNTRY_PEAKS: Record<string, CountryPeaks> = {
       { year: 2024, fp: 25_102_303, hexes: 476 },
       { year: 2025, fp: 23_882_467, hexes: 462 },
     ],
+    emdatRecent: 12_204_287,
   },
   BRA: {
     iso3: "BRA",
@@ -59,6 +67,7 @@ export const COUNTRY_PEAKS: Record<string, CountryPeaks> = {
       { year: 2024, fp: 15_356_319, hexes: 3699 },
       { year: 2025, fp: 15_427_186, hexes: 3745 },
     ],
+    emdatRecent: 2_877_959,
   },
   KEN: {
     iso3: "KEN",
@@ -73,6 +82,7 @@ export const COUNTRY_PEAKS: Record<string, CountryPeaks> = {
       { year: 2023, fp: 4_232_493, hexes: 379 },
       { year: 2024, fp: 4_247_679, hexes: 383 },
     ],
+    emdatRecent: 1_182_841,
   },
 };
 
