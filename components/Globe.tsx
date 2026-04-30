@@ -17,23 +17,18 @@ function formatPopulation(n: number): string {
   return n.toLocaleString();
 }
 
-function trendLabel(ft: number): string {
-  if (ft > 15) return "Strongly increasing";
-  if (ft > 5) return "Increasing";
-  if (ft > -5) return "Stable";
-  if (ft > -15) return "Decreasing";
-  return "Strongly decreasing";
-}
-
-function buildPopupHTML(d: HexDatum): string {
-  const trendColor = d.ft > 5 ? "#ef8a62" : d.ft < -5 ? "#67a9cf" : "#94a3b8";
+function buildPopupHTML(d: HexDatum, year: number): string {
+  // Per-year mode: use whichever PE is non-zero for the active year and
+  // attribute the source. d.p is set when Groundsource flagged the hex this
+  // year; d.trad_p is set when DFO/GFD/GDACS did (with d.trad_y0 != null).
+  const fp = d.p ?? 0;
+  const trad = d.trad_p ?? 0;
+  const value = fp > 0 ? fp : trad;
+  const sourceLabel = fp > 0 ? "Groundsource (news)" : "Traditional catalogs";
   let html = `<div style="font-family: system-ui, sans-serif; font-size: 12px; line-height: 1.6;">`;
-  html += `<div style="font-weight: 600; margin-bottom: 4px; color: #f1f5f9;">${formatPopulation(d.p)} people</div>`;
-  html += `<div style="color: #94a3b8;">Flooded <strong style="color:#f1f5f9">${d.yf}</strong> of ${d.y1 - d.y0 + 1} years (${d.m} months total)</div>`;
-  html += `<div style="color: ${trendColor}; margin-top: 4px;">Trend: ${trendLabel(d.ft)}</div>`;
-  if (d.rp > 0) {
-    html += `<div style="color: #94a3b8; margin-top: 2px;">Floods roughly every <strong style="color:#f1f5f9">${d.rp < 2 ? d.rp.toFixed(1) : Math.round(d.rp)}</strong> years</div>`;
-  }
+  html += `<div style="font-weight: 600; margin-bottom: 2px; color: #f1f5f9;">${formatPopulation(value)} people</div>`;
+  html += `<div style="color: #94a3b8;">Exposed in ${year}</div>`;
+  html += `<div style="color: #94a3b8; margin-top: 2px;">Source: ${sourceLabel}</div>`;
   html += `</div>`;
   return html;
 }
@@ -423,7 +418,7 @@ export default function Globe({
         }
         popupRef.current
           .setLngLat(info.coordinate as [number, number])
-          .setHTML(buildPopupHTML(d))
+          .setHTML(buildPopupHTML(d, year))
           .addTo(map);
       },
 
@@ -444,7 +439,7 @@ export default function Globe({
         }
         popupRef.current
           .setLngLat(info.coordinate as [number, number])
-          .setHTML(buildPopupHTML(d))
+          .setHTML(buildPopupHTML(d, year))
           .addTo(map);
       },
     });

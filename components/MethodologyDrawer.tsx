@@ -235,47 +235,6 @@ export default function MethodologyDrawer({ open, onOpenChange }: MethodologyDra
 
               <section>
                 <h3 className="text-text-primary font-medium mb-2">
-                  Frequency Trend &amp; Return Period
-                </h3>
-                <p>
-                  The <strong className="text-text-primary">frequency trend</strong>{" "}
-                  answers: &ldquo;Are floods becoming more frequent here?&rdquo;
-                  For each hex, we create a binary time series of yearly flood
-                  occurrence (1&nbsp;=&nbsp;flooded, 0&nbsp;=&nbsp;not) across the
-                  full 2000&ndash;2026 observation period, then fit an OLS linear
-                  slope. Positive slope indicates increasing frequency. The
-                  diverging blue&ndash;white&ndash;red color scale highlights
-                  hexes where flooding is decreasing, stable, or increasing.
-                </p>
-                <p className="mt-2">
-                  The <strong className="text-text-primary">return period</strong>{" "}
-                  (shown on hover for hexes with 10+ flood months) estimates how
-                  often a location floods: the span between first and last flood
-                  year divided by the number of inter-event intervals. This is
-                  the empirical return period per{" "}
-                  <a
-                    href="https://doi.org/10.5194/hess-17-1871-2013"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-accent-bright underline underline-offset-2"
-                  >
-                    Winsemius&nbsp;et&nbsp;al.&nbsp;(2013)
-                  </a>
-                  .
-                </p>
-                <p className="mt-2 px-3 py-2 rounded-lg bg-surface text-text-tertiary text-xs leading-relaxed">
-                  <strong className="text-text-secondary">Temporal bias caveat:</strong>{" "}
-                  Groundsource has significant temporal bias &mdash; 64% of all
-                  records are from 2020&ndash;2025, reflecting the growth of online
-                  news coverage rather than actual flood frequency. An &ldquo;increasing&rdquo;
-                  trend at a location may partly reflect improved detection. The
-                  frequency chart and trend layer should be interpreted alongside
-                  this limitation.
-                </p>
-              </section>
-
-              <section>
-                <h3 className="text-text-primary font-medium mb-2">
                   Known Limitations
                 </h3>
                 <ul className="list-disc list-inside space-y-1.5 text-text-tertiary">
@@ -283,8 +242,10 @@ export default function MethodologyDrawer({ open, onOpenChange }: MethodologyDra
                     <span className="text-text-secondary">News bias:</span> The
                     dataset reflects news coverage, not all actual floods.
                     Wealthier, English-speaking countries with more digital news
-                    are over-represented. The exponential growth in records is
-                    primarily due to increased online news coverage.
+                    are over-represented. The dataset is also heavily skewed
+                    toward recent years &mdash; roughly 64% of all records come
+                    from 2020&ndash;2025 &mdash; reflecting the growth of online
+                    news rather than actual flood frequency.
                   </li>
                   <li>
                     <span className="text-text-secondary">Population interpolation:</span>{" "}
